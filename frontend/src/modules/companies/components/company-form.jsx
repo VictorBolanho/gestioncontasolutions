@@ -1,0 +1,122 @@
+import { Link } from "react-router-dom";
+
+export function CompanyForm({
+  mode = "create",
+  values,
+  users = [],
+  onFieldChange,
+  onSubmit,
+  onOpenResponsibilitiesModal,
+  isSubmitting
+}) {
+  const isEdit = mode === "edit";
+
+  return (
+    <form className="space-y-6" onSubmit={onSubmit}>
+      <div className="panel p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-2xl">
+            <span className="text-xs font-bold uppercase tracking-[0.28em] text-brand-cyan">
+              {isEdit ? "Editar empresa" : "Nueva empresa"}
+            </span>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brand-ink">
+              {isEdit ? "Actualiza la ficha operativa del cliente" : "Registra una empresa cliente"}
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-slate-500">
+              Usa una captura completa desde el inicio para que responsabilidades, tareas y seguimiento gerencial nazcan bien modelados.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            {!isEdit ? (
+              <button type="button" className="button-secondary" onClick={onOpenResponsibilitiesModal}>
+                Configurar responsabilidades iniciales
+              </button>
+            ) : null}
+            <Link to="/companies" className="button-secondary">
+              Volver al listado
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="panel space-y-5 p-6">
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Razón social</label>
+              <input className="field-input" value={values.businessName} onChange={(event) => onFieldChange("businessName", event.target.value)} />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">NIT</label>
+              <input className="field-input" value={values.nit} onChange={(event) => onFieldChange("nit", event.target.value)} />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Tipo empresa</label>
+              <input className="field-input" value={values.companyType} onChange={(event) => onFieldChange("companyType", event.target.value)} />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Régimen</label>
+              <input className="field-input" value={values.taxRegime} onChange={(event) => onFieldChange("taxRegime", event.target.value)} />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Ciudad</label>
+              <input className="field-input" value={values.city} onChange={(event) => onFieldChange("city", event.target.value)} />
+            </div>
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Actividad económica</label>
+              <input className="field-input" value={values.economicActivity} onChange={(event) => onFieldChange("economicActivity", event.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        <div className="panel space-y-5 p-6">
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">Responsable asignado</label>
+            <select className="field-input" value={values.assignedProfessional} onChange={(event) => onFieldChange("assignedProfessional", event.target.value)}>
+              <option value="">Sin asignar</option>
+              {users.map((user) => (
+                <option key={user._id} value={user._id}>
+                  {user.fullName || `${user.firstName} ${user.lastName}`.trim()}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">Estado</label>
+            <select className="field-input" value={values.status} onChange={(event) => onFieldChange("status", event.target.value)}>
+              <option value="ACTIVE">Activa</option>
+              <option value="INACTIVE">Inactiva</option>
+              <option value="SUSPENDED">Suspendida</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">Observaciones</label>
+            <textarea
+              className="field-input min-h-40 py-3"
+              value={values.observations}
+              onChange={(event) => onFieldChange("observations", event.target.value)}
+            />
+          </div>
+
+          {!isEdit ? (
+            <div className="rounded-3xl border border-cyan-100 bg-cyan-50/80 px-4 py-4 text-sm text-cyan-900">
+              <p className="font-bold">Responsabilidades iniciales configuradas</p>
+              <p className="mt-2">{values.initialResponsibilities.length} responsabilidades listas para crearse junto con la empresa.</p>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 md:flex-row md:justify-end">
+        <Link to="/companies" className="button-secondary">
+          Cancelar
+        </Link>
+        <button type="submit" className="button-primary" disabled={isSubmitting}>
+          {isSubmitting ? "Guardando..." : isEdit ? "Actualizar empresa" : "Crear empresa"}
+        </button>
+      </div>
+    </form>
+  );
+}
