@@ -93,6 +93,21 @@ export function TaskForm({
           </div>
 
           <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">Tipo de operación</label>
+            <select className="field-input" value={values.operationType} onChange={(event) => onFieldChange("operationType", event.target.value)}>
+              <option value="RENTA">Declaración de renta</option>
+              <option value="IVA">IVA</option>
+              <option value="RETEFUENTE">Retención</option>
+              <option value="NOMINA">Nómina</option>
+              <option value="CONSTITUCION_EMPRESA">Constitución empresa</option>
+              <option value="AFILIACIONES">Afiliaciones</option>
+              <option value="ESTADOS_FINANCIEROS">Estados financieros</option>
+              <option value="GERENCIAL_PERSONALIZADA">Gerencial personalizada</option>
+              <option value="OTRA">Otra</option>
+            </select>
+          </div>
+
+          <div>
             <label className="mb-2 block text-sm font-semibold text-slate-700">Responsable</label>
             <select className="field-input" value={values.assignedTo} onChange={(event) => onFieldChange("assignedTo", event.target.value)}>
               <option value="">Selecciona responsable</option>

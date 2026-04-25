@@ -1,7 +1,7 @@
 const { Company } = require("../../companies/models/company.model");
+const { FiscalObligation } = require("../../fiscal-obligations/models/fiscal-obligation.model");
 const { Notification } = require("../../notifications/models/notification.model");
 const { Task } = require("../../tasks/models/task.model");
-const { TaxResponsibility } = require("../../tax-responsibilities/models/tax-responsibility.model");
 const { syncOperationalStatuses } = require("../../../utils/status-sync");
 
 class DashboardService {
@@ -29,7 +29,8 @@ class DashboardService {
       overdueTasks,
       completedThisMonth,
       criticalAlerts,
-      responsibilitiesUpcoming
+      responsibilitiesUpcoming,
+      clientsAtRisk
     ] = await Promise.all([
       Company.countDocuments({ isDeleted: false }),
       Company.countDocuments({ isDeleted: false, status: "ACTIVE" }),
@@ -50,11 +51,38 @@ class DashboardService {
         type: "CRITICAL",
         isRead: false
       }),
-      TaxResponsibility.countDocuments({
-        active: true,
-        status: { $nin: ["COMPLETED", "INACTIVE"] },
-        nextDate: { $gte: now, $lte: upcomingLimitDate }
-      })
+      FiscalObligation.countDocuments({
+        status: { $in: ["pending", "in_progress"] },
+        dueDate: { $gte: now, $lte: upcomingLimitDate }
+      }),
+      FiscalObligation.aggregate([
+        {
+          $match: {
+            status: "overdue"
+          }
+        },
+        {
+          $group: {
+            _id: "$companyId"
+          }
+        },
+        {
+          $lookup: {
+            from: "companies",
+            localField: "_id",
+            foreignField: "_id",
+            as: "company"
+          }
+        },
+        { $unwind: "$company" },
+        {
+          $match: {
+            "company.isDeleted": false,
+            "company.status": "ACTIVE"
+          }
+        },
+        { $count: "total" }
+      ])
     ]);
 
     return {
@@ -66,7 +94,8 @@ class DashboardService {
       overdueTasks,
       completedThisMonth,
       criticalAlerts,
-      responsibilitiesUpcoming
+      responsibilitiesUpcoming,
+      clientsAtRisk: clientsAtRisk[0]?.total || 0
     };
   }
 
@@ -210,14 +239,13 @@ class DashboardService {
       },
       {
         $lookup: {
-          from: "taxresponsibilities",
+          from: "fiscalobligations",
           let: { companyId: "$_id" },
           pipeline: [
             {
               $match: {
                 $expr: { $eq: ["$company", "$$companyId"] },
-                nextDate: { $gte: startOfMonth, $lt: endOfMonth },
-                active: true
+                dueDate: { $gte: startOfMonth, $lt: endOfMonth }
               }
             },
             {
@@ -226,18 +254,18 @@ class DashboardService {
                 total: { $sum: 1 },
                 completed: {
                   $sum: {
-                    $cond: [{ $eq: ["$status", "COMPLETED"] }, 1, 0]
+                    $cond: [{ $eq: ["$status", "submitted"] }, 1, 0]
                   }
                 },
                 overdue: {
                   $sum: {
-                    $cond: [{ $eq: ["$status", "OVERDUE"] }, 1, 0]
+                    $cond: [{ $eq: ["$status", "overdue"] }, 1, 0]
                   }
                 }
               }
             }
           ],
-          as: "taxSummary"
+          as: "fiscalSummary"
         }
       },
       {
@@ -253,21 +281,21 @@ class DashboardService {
           taskSummary: {
             $ifNull: [{ $arrayElemAt: ["$taskSummary", 0] }, { total: 0, completed: 0, overdue: 0 }]
           },
-          taxSummary: {
-            $ifNull: [{ $arrayElemAt: ["$taxSummary", 0] }, { total: 0, completed: 0, overdue: 0 }]
+          fiscalSummary: {
+            $ifNull: [{ $arrayElemAt: ["$fiscalSummary", 0] }, { total: 0, completed: 0, overdue: 0 }]
           }
         }
       },
       {
         $addFields: {
           totalItems: {
-            $add: ["$taskSummary.total", "$taxSummary.total"]
+            $add: ["$taskSummary.total", "$fiscalSummary.total"]
           },
           completedItems: {
-            $add: ["$taskSummary.completed", "$taxSummary.completed"]
+            $add: ["$taskSummary.completed", "$fiscalSummary.completed"]
           },
           overdueItems: {
-            $add: ["$taskSummary.overdue", "$taxSummary.overdue"]
+            $add: ["$taskSummary.overdue", "$fiscalSummary.overdue"]
           }
         }
       },
@@ -299,6 +327,69 @@ class DashboardService {
     ]);
 
     return compliance;
+  }
+
+  async getUpcomingObligations() {
+    await syncOperationalStatuses();
+
+    const now = new Date();
+    const upcomingLimitDate = new Date(now);
+    upcomingLimitDate.setDate(upcomingLimitDate.getDate() + 30);
+
+    return FiscalObligation.find({
+      status: { $in: ["pending", "in_progress"] },
+      dueDate: { $gte: now, $lte: upcomingLimitDate }
+    })
+      .populate("companyId", "businessName nit verificationDigit municipality status")
+      .populate("responsibilityId", "name periodicity")
+      .populate("assignedUserId", "firstName lastName email")
+      .sort({ dueDate: 1, createdAt: -1 })
+      .limit(50);
+  }
+
+  async getClientsAtRisk() {
+    await syncOperationalStatuses();
+
+    return FiscalObligation.aggregate([
+      { $match: { status: "overdue" } },
+      {
+        $group: {
+          _id: "$companyId",
+          overdueObligations: { $sum: 1 },
+          nearestDueDate: { $min: "$dueDate" }
+        }
+      },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "_id",
+          foreignField: "_id",
+          as: "company"
+        }
+      },
+      { $unwind: "$company" },
+      {
+        $match: {
+          "company.isDeleted": false,
+          "company.status": "ACTIVE"
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          company: {
+            id: "$company._id",
+            businessName: "$company.businessName",
+            nit: "$company.nit",
+            verificationDigit: "$company.verificationDigit",
+            municipality: "$company.municipality"
+          },
+          overdueObligations: 1,
+          nearestDueDate: 1
+        }
+      },
+      { $sort: { overdueObligations: -1, nearestDueDate: 1 } }
+    ]);
   }
 }
 

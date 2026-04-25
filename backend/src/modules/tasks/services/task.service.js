@@ -111,6 +111,7 @@ class TaskService {
       description: payload.description,
       company: payload.companyId,
       taxResponsibility: payload.responsibilityId || null,
+      operationType: payload.operationType,
       assignedTo: payload.assignedTo,
       createdBy: currentUser._id,
       updatedBy: currentUser._id,
@@ -209,6 +210,7 @@ class TaskService {
     const updatedTask = await this.taskRepository.updateById(taskId, {
       company: targetCompanyId,
       taxResponsibility: targetResponsibilityId || null,
+      operationType: payload.operationType || currentTask.operationType,
       assignedTo: payload.assignedTo || currentTask.assignedTo._id,
       title: payload.title || currentTask.title,
       description: payload.description ?? currentTask.description,

@@ -5,6 +5,10 @@ class TaskRepository {
     return Task.create([payload], options).then((documents) => documents[0]);
   }
 
+  async insertMany(payload, options = {}) {
+    return Task.insertMany(payload, options);
+  }
+
   async findById(taskId) {
     return Task.findById(taskId)
       .populate("company", "businessName nit city")

@@ -7,6 +7,7 @@ export function useTaskForm(initialValues = {}) {
       description: initialValues.description || "",
       companyId: initialValues.company?._id || initialValues.companyId || "",
       responsibilityId: initialValues.taxResponsibility?._id || initialValues.responsibilityId || "",
+      operationType: initialValues.operationType || "OTRA",
       assignedTo: initialValues.assignedTo?._id || initialValues.assignedTo || "",
       priority: initialValues.priority || "MEDIUM",
       dueDate: initialValues.dueDate ? new Date(initialValues.dueDate).toISOString().slice(0, 10) : "",

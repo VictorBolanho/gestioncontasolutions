@@ -59,6 +59,22 @@ const taskSchema = new mongoose.Schema(
       ref: "Company",
       required: true
     },
+    operationType: {
+      type: String,
+      enum: [
+        "RENTA",
+        "IVA",
+        "RETEFUENTE",
+        "NOMINA",
+        "CONSTITUCION_EMPRESA",
+        "AFILIACIONES",
+        "ESTADOS_FINANCIEROS",
+        "GERENCIAL_PERSONALIZADA",
+        "OTRA"
+      ],
+      default: "OTRA",
+      index: true
+    },
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -97,7 +113,7 @@ const taskSchema = new mongoose.Schema(
 );
 
 taskSchema.index({ assignedTo: 1, dueDate: 1, status: 1 });
-taskSchema.index({ company: 1, dueDate: 1 });
+taskSchema.index({ company: 1, operationType: 1, dueDate: 1 });
 taskSchema.index({ status: 1, dueDate: 1, priority: 1 });
 taskSchema.index({ createdBy: 1, createdAt: -1 });
 

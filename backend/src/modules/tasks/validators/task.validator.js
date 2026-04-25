@@ -11,12 +11,25 @@ const commentSchema = Joi.object({
   content: Joi.string().trim().min(1).max(2000).required()
 });
 
+const operationType = Joi.string().valid(
+  "RENTA",
+  "IVA",
+  "RETEFUENTE",
+  "NOMINA",
+  "CONSTITUCION_EMPRESA",
+  "AFILIACIONES",
+  "ESTADOS_FINANCIEROS",
+  "GERENCIAL_PERSONALIZADA",
+  "OTRA"
+);
+
 const createTaskSchema = Joi.object({
   body: Joi.object({
     title: Joi.string().trim().min(2).max(200).required(),
     description: Joi.string().trim().allow("").max(5000).default(""),
     companyId: objectId.required(),
     responsibilityId: objectId.allow(null).default(null),
+    operationType: operationType.default("OTRA"),
     assignedTo: objectId.required(),
     priority: Joi.string().valid("LOW", "MEDIUM", "HIGH", "CRITICAL").default("MEDIUM"),
     dueDate: Joi.date().iso().required(),
@@ -34,6 +47,7 @@ const updateTaskSchema = Joi.object({
     description: Joi.string().trim().allow("").max(5000),
     companyId: objectId,
     responsibilityId: objectId.allow(null),
+    operationType,
     assignedTo: objectId,
     priority: Joi.string().valid("LOW", "MEDIUM", "HIGH", "CRITICAL"),
     dueDate: Joi.date().iso(),
@@ -63,6 +77,7 @@ const listTasksSchema = Joi.object({
     limit: Joi.number().integer().min(1).max(100).default(10),
     companyId: objectId,
     assignedTo: objectId,
+    operationType,
     priority: Joi.string().valid("LOW", "MEDIUM", "HIGH", "CRITICAL"),
     overdue: Joi.boolean(),
     status: Joi.string().valid("PENDING", "IN_PROGRESS", "COMPLETED", "OVERDUE"),

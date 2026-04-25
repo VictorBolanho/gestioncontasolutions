@@ -28,10 +28,15 @@ const responsibilitySchema = Joi.object({
 
 const companyBodySchema = {
   businessName: Joi.string().trim().min(2).max(200).required(),
+  personType: Joi.string().valid("NATURAL", "JURIDICA").default("JURIDICA"),
+  identificationType: Joi.string().valid("NIT", "CEDULA", "CEDULA_EXTRANJERIA", "PASAPORTE").default("NIT"),
   nit: Joi.string().trim().min(5).max(30).required(),
+  verificationDigit: Joi.string().trim().allow("").max(2).default(""),
   companyType: Joi.string().trim().allow("").max(100).default(""),
   taxRegime: Joi.string().trim().allow("").max(100).default(""),
   city: Joi.string().trim().allow("").max(100).default(""),
+  municipality: Joi.string().trim().allow("").max(100).default(""),
+  activeEmployees: Joi.number().integer().min(0).default(0),
   economicActivity: Joi.string().trim().allow("").max(150).default(""),
   status: Joi.string().valid("ACTIVE", "INACTIVE", "SUSPENDED").default("ACTIVE"),
   assignedProfessional: objectId.allow(null),
@@ -56,10 +61,15 @@ const createCompanyWithResponsibilitiesSchema = Joi.object({
 const updateCompanySchema = Joi.object({
   body: Joi.object({
     businessName: Joi.string().trim().min(2).max(200),
+    personType: Joi.string().valid("NATURAL", "JURIDICA"),
+    identificationType: Joi.string().valid("NIT", "CEDULA", "CEDULA_EXTRANJERIA", "PASAPORTE"),
     nit: Joi.string().trim().min(5).max(30),
+    verificationDigit: Joi.string().trim().allow("").max(2),
     companyType: Joi.string().trim().allow("").max(100),
     taxRegime: Joi.string().trim().allow("").max(100),
     city: Joi.string().trim().allow("").max(100),
+    municipality: Joi.string().trim().allow("").max(100),
+    activeEmployees: Joi.number().integer().min(0),
     economicActivity: Joi.string().trim().allow("").max(150),
     status: Joi.string().valid("ACTIVE", "INACTIVE", "SUSPENDED"),
     assignedProfessional: objectId.allow(null),
@@ -90,6 +100,8 @@ const listCompaniesSchema = Joi.object({
     businessName: Joi.string().trim().allow(""),
     nit: Joi.string().trim().allow(""),
     city: Joi.string().trim().allow(""),
+    municipality: Joi.string().trim().allow(""),
+    personType: Joi.string().valid("NATURAL", "JURIDICA"),
     responsible: objectId,
     assignedProfessional: objectId,
     status: Joi.string().valid("ACTIVE", "INACTIVE", "SUSPENDED")

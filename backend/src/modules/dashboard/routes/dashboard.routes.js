@@ -27,5 +27,15 @@ router.get(
   authorizeAny(SYSTEM_PERMISSIONS.DASHBOARD_VIEW),
   asyncHandler(controller.compliance)
 );
+router.get(
+  "/upcoming-obligations",
+  authorizeAny(SYSTEM_PERMISSIONS.DASHBOARD_VIEW),
+  asyncHandler(controller.upcomingObligations)
+);
+router.get(
+  "/clients-at-risk",
+  authorizeAny(SYSTEM_PERMISSIONS.DASHBOARD_VIEW),
+  asyncHandler(controller.clientsAtRisk)
+);
 
 module.exports = { dashboardRouter: router };

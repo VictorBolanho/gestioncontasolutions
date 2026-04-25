@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/app/layouts/app-layout";
 import { AuthLayout } from "@/app/layouts/auth-layout";
 import { DashboardPage } from "@/modules/dashboard/pages/dashboard-page";
+import { FiscalObligationDetailPage, FiscalObligationsPage } from "@/modules/fiscal-obligations";
 import { LoginPage } from "@/modules/auth/pages/login-page";
 import { CalendarPage } from "@/modules/calendar";
 import {
@@ -41,6 +42,8 @@ export function AppRouter() {
               />
             }
           />
+          <Route path="/fiscal-obligations" element={<FiscalObligationsPage />} />
+          <Route path="/fiscal-obligations/:obligationId" element={<FiscalObligationDetailPage />} />
           <Route
             path="/tasks"
             element={<TasksPage />}

@@ -34,6 +34,24 @@ class DashboardController {
       data
     });
   };
+
+  upcomingObligations = async (req, res) => {
+    const data = await this.dashboardService.getUpcomingObligations();
+    return sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      message: "Dashboard upcoming fiscal obligations fetched successfully",
+      data
+    });
+  };
+
+  clientsAtRisk = async (req, res) => {
+    const data = await this.dashboardService.getClientsAtRisk();
+    return sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      message: "Dashboard clients at risk fetched successfully",
+      data
+    });
+  };
 }
 
 module.exports = { DashboardController };

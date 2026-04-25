@@ -7,6 +7,7 @@ const navigationItems = [
   { label: "Dashboard", to: "/" },
   { label: "Empresas", to: "/companies" },
   { label: "Responsabilidades", to: "/responsibilities" },
+  { label: "Obligaciones", to: "/fiscal-obligations" },
   { label: "Tareas", to: "/tasks" },
   { label: "Calendario", to: "/calendar" },
   { label: "Reportes", to: "/reports" },

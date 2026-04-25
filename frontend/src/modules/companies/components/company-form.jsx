@@ -17,10 +17,10 @@ export function CompanyForm({
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="max-w-2xl">
             <span className="text-xs font-bold uppercase tracking-[0.28em] text-brand-cyan">
-              {isEdit ? "Editar empresa" : "Nueva empresa"}
+              {isEdit ? "Editar cliente fiscal" : "Nuevo cliente fiscal"}
             </span>
             <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brand-ink">
-              {isEdit ? "Actualiza la ficha operativa del cliente" : "Registra una empresa cliente"}
+              {isEdit ? "Actualiza la ficha fiscal-operativa del cliente" : "Registra un cliente fiscal"}
             </h2>
             <p className="mt-3 text-sm leading-7 text-slate-500">
               Usa una captura completa desde el inicio para que responsabilidades, tareas y seguimiento gerencial nazcan bien modelados.
@@ -43,24 +43,52 @@ export function CompanyForm({
         <div className="panel space-y-5 p-6">
           <div className="grid gap-5 md:grid-cols-2">
             <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-semibold text-slate-700">Razón social</label>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Razón social / nombre completo</label>
               <input className="field-input" value={values.businessName} onChange={(event) => onFieldChange("businessName", event.target.value)} />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">NIT</label>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Tipo de persona</label>
+              <select className="field-input" value={values.personType} onChange={(event) => onFieldChange("personType", event.target.value)}>
+                <option value="JURIDICA">Jurídica</option>
+                <option value="NATURAL">Natural</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Tipo de identificación</label>
+              <select className="field-input" value={values.identificationType} onChange={(event) => onFieldChange("identificationType", event.target.value)}>
+                <option value="NIT">NIT</option>
+                <option value="CEDULA">Cédula</option>
+                <option value="CEDULA_EXTRANJERIA">Cédula extranjería</option>
+                <option value="PASAPORTE">Pasaporte</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">NIT / cédula</label>
               <input className="field-input" value={values.nit} onChange={(event) => onFieldChange("nit", event.target.value)} />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">DV</label>
+              <input className="field-input" value={values.verificationDigit} onChange={(event) => onFieldChange("verificationDigit", event.target.value)} />
             </div>
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-700">Tipo empresa</label>
               <input className="field-input" value={values.companyType} onChange={(event) => onFieldChange("companyType", event.target.value)} />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">Régimen</label>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Régimen tributario</label>
               <input className="field-input" value={values.taxRegime} onChange={(event) => onFieldChange("taxRegime", event.target.value)} />
             </div>
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-700">Ciudad</label>
               <input className="field-input" value={values.city} onChange={(event) => onFieldChange("city", event.target.value)} />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Municipio</label>
+              <input className="field-input" value={values.municipality} onChange={(event) => onFieldChange("municipality", event.target.value)} />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Empleados activos</label>
+              <input type="number" min="0" className="field-input" value={values.activeEmployees} onChange={(event) => onFieldChange("activeEmployees", event.target.value)} />
             </div>
             <div className="md:col-span-2">
               <label className="mb-2 block text-sm font-semibold text-slate-700">Actividad económica</label>

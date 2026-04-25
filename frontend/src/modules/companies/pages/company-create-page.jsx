@@ -37,6 +37,7 @@ export function CompanyCreatePage() {
 
     createMutation.mutate({
       ...values,
+      activeEmployees: Number(values.activeEmployees) || 0,
       assignedProfessional: values.assignedProfessional || null
     });
   };

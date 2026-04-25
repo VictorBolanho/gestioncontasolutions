@@ -9,10 +9,26 @@ const companySchema = new mongoose.Schema(
       required: true,
       trim: true
     },
+    personType: {
+      type: String,
+      enum: ["NATURAL", "JURIDICA"],
+      default: "JURIDICA",
+      index: true
+    },
+    identificationType: {
+      type: String,
+      enum: ["NIT", "CEDULA", "CEDULA_EXTRANJERIA", "PASAPORTE"],
+      default: "NIT"
+    },
     nit: {
       type: String,
       required: true,
       trim: true
+    },
+    verificationDigit: {
+      type: String,
+      trim: true,
+      default: ""
     },
     companyType: {
       type: String,
@@ -28,6 +44,16 @@ const companySchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: ""
+    },
+    municipality: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+    activeEmployees: {
+      type: Number,
+      min: 0,
+      default: 0
     },
     economicActivity: {
       type: String,
@@ -80,8 +106,8 @@ companySchema.index(
   }
 );
 
-companySchema.index({ businessName: "text", nit: "text", city: "text" });
-companySchema.index({ isDeleted: 1, status: 1, assignedProfessional: 1, createdAt: -1 });
+companySchema.index({ businessName: "text", nit: "text", city: "text", municipality: "text" });
+companySchema.index({ isDeleted: 1, status: 1, personType: 1, assignedProfessional: 1, createdAt: -1 });
 
 const Company = mongoose.model("Company", companySchema);
 

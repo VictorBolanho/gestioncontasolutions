@@ -60,6 +60,7 @@ export function TaskCreatePage() {
       description: values.description,
       companyId: values.companyId,
       responsibilityId: values.responsibilityId || null,
+      operationType: values.operationType,
       assignedTo: values.assignedTo,
       priority: values.priority,
       dueDate: values.dueDate,

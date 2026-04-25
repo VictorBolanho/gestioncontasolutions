@@ -1,5 +1,6 @@
 const { Task } = require("../modules/tasks/models/task.model");
 const { TaxResponsibility } = require("../modules/tax-responsibilities/models/tax-responsibility.model");
+const { FiscalObligation } = require("../modules/fiscal-obligations/models/fiscal-obligation.model");
 
 const syncOperationalStatuses = async () => {
   const now = new Date();
@@ -22,6 +23,15 @@ const syncOperationalStatuses = async () => {
       },
       {
         status: "OVERDUE"
+      }
+    ),
+    FiscalObligation.updateMany(
+      {
+        dueDate: { $lt: now },
+        status: { $in: ["pending", "in_progress"] }
+      },
+      {
+        status: "overdue"
       }
     )
   ]);
