@@ -1,0 +1,17 @@
+{
+  "name": "gestorconta",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "node apps/api/src/server.js",
+    "dev:web": "node apps/web/server.js",
+    "start:api": "node apps/api/src/server.js",
+    "start:web": "node apps/web/server.js",
+    "reset:dev-data": "node scripts/reset-dev-data.js --confirm"
+  }
+}

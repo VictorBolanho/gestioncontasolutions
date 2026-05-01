@@ -1,0 +1,1606 @@
+DOCUMENTO MAESTRO DEL PROYECTO
+SISTEMA DE CONTROL OPERATIVO, CONTABLE Y TRIBUTARIO
+FASES 1 A 11 + TECNOLOGÍAS RECOMENDADAS
+
+Versión:
+Flujo completo actualizado, integrando las fases ya diseñadas y agregando cuatro fases finales:
+
+Fase 8:
+Configuración general del sistema.
+
+Fase 9:
+Portal del cliente.
+
+Fase 10:
+Solicitudes de documentos e información al cliente.
+
+Fase 11:
+Auditoría, seguridad, respaldo y preparación SaaS.
+
+Objetivo del documento:
+Dejar una guía clara, lineal y armónica para que el equipo de desarrollo pueda construir el sistema por fases, evitando conflictos entre módulos y dejando una base escalable para convertir el proyecto en un software como servicio para otras empresas contables o administrativas.
+
+------------------------------------------------------------
+1. VISIÓN GENERAL DEL SISTEMA
+------------------------------------------------------------
+
+El sistema busca controlar empresas cliente, obligaciones fiscales, tareas contables, tareas administrativas, calendarios tributarios, usuarios, permisos, alertas, correos, portal cliente, documentos, auditoría y reportes gerenciales.
+
+El sistema debe permitir:
+
+1. Crear empresas automáticamente desde el PDF del RUT.
+2. Detectar obligaciones fiscales nacionales y municipales.
+3. Cargar calendarios fiscales por año, impuesto y municipio.
+4. Generar tareas fiscales automáticas.
+5. Crear tareas manuales, contables, administrativas, operativas y recurrentes.
+6. Gestionar usuarios internos y usuarios cliente.
+7. Asignar permisos por rol, cargo y checklist personalizada.
+8. Proteger datos sensibles de clientes.
+9. Solicitar documentos al cliente.
+10. Permitir al cliente cargar soportes y revisar estados permitidos.
+11. Enviar alertas internas y correos reales.
+12. Consolidar dashboards, reportes e indicadores.
+13. Mantener auditoría y trazabilidad.
+14. Manejar configuración general sin tocar código.
+15. Preparar el sistema para operar como SaaS multiempresa.
+
+------------------------------------------------------------
+2. ORDEN FINAL DE FASES
+------------------------------------------------------------
+
+Fase 1:
+Creación automática de empresa desde PDF RUT.
+
+Fase 2:
+Motor de impuestos y obligaciones fiscales.
+
+Fase 3:
+Calendario fiscal, versionamiento y generación de tareas fiscales.
+
+Fase 4:
+Usuarios, colaboradores, clientes, roles, permisos, seguridad y control de acceso.
+
+Fase 5:
+Gestión integral de tareas fiscales, contables, administrativas, operativas y recurrentes.
+
+Fase 6:
+Notificaciones, alertas, correos reales, escalamiento y comunicación.
+
+Fase 7:
+Dashboard gerencial, reportes e indicadores.
+
+Fase 8:
+Configuración general del sistema.
+
+Fase 9:
+Portal del cliente.
+
+Fase 10:
+Solicitudes de documentos e información al cliente.
+
+Fase 11:
+Auditoría, seguridad, respaldo y preparación SaaS.
+
+------------------------------------------------------------
+3. FLUJO GENERAL INTEGRADO
+------------------------------------------------------------
+
+1. Un usuario autorizado carga el PDF del RUT.
+2. El sistema extrae datos automáticamente.
+3. El usuario revisa y confirma la información.
+4. Se crea la empresa.
+5. El sistema analiza responsabilidades tributarias, actividad económica, municipio y régimen.
+6. Se sugieren o crean obligaciones fiscales.
+7. El usuario confirma las obligaciones.
+8. El administrador carga calendarios fiscales nacionales o municipales.
+9. El sistema genera tareas fiscales solo para empresas activas.
+10. El gerente crea tareas manuales o recurrentes no fiscales si aplica.
+11. Los usuarios trabajan tareas según permisos y empresas asignadas.
+12. Las tareas fiscales pasan por liquidación, revisión, presentación y pago.
+13. Las tareas generales pasan por ejecución, evidencia, revisión y cierre.
+14. El sistema solicita documentos al cliente cuando una tarea lo requiere.
+15. El cliente entra al portal, consulta su empresa y carga soportes permitidos.
+16. El sistema genera alertas internas.
+17. El sistema valida si corresponde enviar correo.
+18. El correo se envía solo si pasa validaciones.
+19. El dashboard consolida cumplimiento, riesgos, pagos, tareas, alertas y usuarios.
+20. La auditoría registra acciones sensibles.
+21. Los respaldos protegen la información.
+22. La configuración permite ajustar reglas, plantillas, alertas, permisos y parámetros sin cambiar código.
+23. El sistema queda preparado para operar como SaaS mediante separación por organización o tenant.
+
+------------------------------------------------------------
+4. REGLAS TRANSVERSALES DEL SISTEMA
+------------------------------------------------------------
+
+1. No eliminar información histórica.
+2. Desactivar, suspender, archivar o versionar en lugar de borrar.
+3. Solo empresas activas generan nuevas tareas fiscales desde calendario.
+4. Las tareas manuales o recurrentes deben respetar el estado de la empresa.
+5. Una empresa suspendida, inactiva o archivada sale del flujo operativo activo.
+6. Una tarea fiscal puede estar liquidada y presentada, pero pendiente de pago por el cliente.
+7. El no pago del cliente no afecta el cumplimiento operativo interno si existe trazabilidad.
+8. No todas las tareas dependen de impuestos.
+9. El sistema debe permitir tareas manuales y recurrentes.
+10. El usuario solo debe ver lo necesario para cumplir su trabajo.
+11. Los datos sensibles del cliente deben protegerse por permisos.
+12. El cliente solo ve información de su propia empresa y únicamente lo autorizado.
+13. Toda acción sensible debe generar auditoría.
+14. La alerta interna siempre debe crearse.
+15. El correo solo debe enviarse si pasa validaciones.
+16. El fallo del correo no elimina la alerta interna.
+17. La configuración debe permitir ajustes sin despliegues de código.
+18. Las solicitudes al cliente deben quedar trazadas.
+19. Los documentos cargados deben quedar asociados a empresa, tarea, solicitud o evidencia.
+20. El sistema debe contemplar multiempresa o multi-tenant para crecer como SaaS.
+
+------------------------------------------------------------
+5. GESTIÓN DE ESTADOS DE EMPRESA
+------------------------------------------------------------
+
+Estados:
+
+borrador:
+Se inició la creación o se cargó un RUT, pero aún no se confirmó.
+
+pendiente_revision:
+La empresa tiene datos incompletos o extracción parcial.
+
+activa:
+Empresa operativa. Participa en obligaciones, calendarios, tareas, alertas y dashboards.
+
+suspendida:
+Empresa pausada temporalmente. No genera nuevas tareas mientras esté suspendida, pero puede reactivarse.
+
+inactiva:
+Empresa que ya no se gestiona operativamente. Conserva histórico.
+
+archivada:
+Empresa cerrada para operación normal. Solo visible para consulta histórica o auditoría.
+
+Regla:
+Una empresa suspendida, inactiva o archivada no debe generar nuevas tareas fiscales, tareas recurrentes, obligaciones automáticas ni alertas futuras operativas. Conserva todo su histórico.
+
+------------------------------------------------------------
+FASE 1 - CREACIÓN AUTOMÁTICA DE EMPRESA DESDE PDF RUT
+------------------------------------------------------------
+
+Objetivo:
+Crear empresas a partir del cargue del PDF del RUT, extrayendo información automáticamente y exigiendo revisión humana antes de guardar.
+
+Flujo:
+1. Usuario autorizado carga PDF del RUT.
+2. El sistema valida que sea PDF.
+3. El sistema guarda archivo temporal.
+4. El sistema extrae texto.
+5. El sistema interpreta campos.
+6. El sistema muestra formulario precargado.
+7. Usuario revisa, corrige y confirma.
+8. Sistema crea empresa.
+9. Sistema asocia ubicación, actividad económica, responsabilidades, representante legal y documento RUT.
+10. Sistema guarda trazabilidad.
+
+Entidades:
+- Empresa.
+- UbicacionEmpresa.
+- ActividadEconomica.
+- ResponsabilidadTributaria.
+- RepresentanteLegal.
+- DocumentoEmpresa.
+- ExtraccionRut.
+- MunicipioOperacionEmpresa.
+- AuditoriaEmpresa.
+
+Campos mínimos de Empresa:
+- id.
+- nit.
+- dv.
+- razonSocial.
+- nombreComercial.
+- tipoContribuyente.
+- tipoPersona.
+- regimenTributario.
+- direccionSeccional.
+- estadoEmpresa.
+- fechaInscripcionRut.
+- fechaGeneracionRut.
+- fechaActivacion.
+- fechaSuspension.
+- fechaInactivacion.
+- fechaArchivado.
+- motivoCambioEstado.
+- cambiadoPor.
+- permiteGenerarTareas.
+- permiteGenerarObligaciones.
+- visibleEnOperacion.
+- createdAt.
+- updatedAt.
+
+Validaciones:
+- NIT obligatorio.
+- DV obligatorio.
+- Razón social obligatoria.
+- Tipo de contribuyente obligatorio.
+- Correo válido si existe.
+- Actividad económica principal obligatoria o pendiente de revisión.
+- Responsabilidades tributarias obligatorias o pendientes de revisión.
+- Representante legal obligatorio para persona jurídica o pendiente de revisión.
+- No permitir duplicado exacto de NIT + DV.
+- Guardar RUT como documento soporte.
+- No crear automáticamente sin revisión humana.
+
+Resultado esperado:
+Empresa creada y estructurada, lista para análisis tributario.
+
+------------------------------------------------------------
+FASE 2 - MOTOR DE IMPUESTOS Y OBLIGACIONES FISCALES
+------------------------------------------------------------
+
+Objetivo:
+Detectar o sugerir obligaciones fiscales nacionales, municipales, contables y comerciales a partir de RUT, CIIU, municipio, régimen y reglas.
+
+Entidades:
+- Impuesto.
+- ObligacionFiscalEmpresa.
+- ReglaImpuesto.
+- PeriodicidadObligacion.
+- MunicipioOperacionEmpresa.
+- AuditoriaObligacionFiscal.
+
+Entidad Impuesto:
+- id.
+- codigo.
+- nombre.
+- nivel.
+- descripcion.
+- estado.
+
+Niveles:
+- nacional.
+- departamental.
+- municipal.
+- comercial.
+- contable.
+
+Entidad ObligacionFiscalEmpresa:
+- id.
+- empresaId.
+- impuestoId.
+- nombreObligacion.
+- nivel.
+- aplica.
+- motivoAplicacion.
+- fuenteDeteccion.
+- periodicidad.
+- responsabilidadRutOrigen.
+- codigoResponsabilidadRut.
+- municipioAplicacion.
+- departamentoAplicacion.
+- fechaInicioAplicacion.
+- fechaFinAplicacion.
+- estado.
+- requiereConfirmacion.
+- confirmadoPorUsuario.
+- observaciones.
+
+Reglas iniciales:
+- Responsabilidad 05: sugerir Renta.
+- Responsabilidad 07: sugerir Retención en la fuente.
+- Responsabilidad 14: sugerir Información exógena.
+- Responsabilidad 16: sugerir Facturación electrónica.
+- Responsabilidad 42: sugerir Obligación contable.
+- Responsabilidad 48: sugerir IVA.
+- Actividad comercial + municipio: sugerir ICA.
+- Obligaciones municipales requieren confirmación manual.
+
+Estados:
+- sugerida.
+- activa.
+- pendiente_revision.
+- no_aplica.
+- inactiva.
+- suspendida_por_empresa.
+- inactiva_por_empresa.
+
+Resultado esperado:
+Obligaciones fiscales confirmadas o sugeridas, listas para calendario y tareas.
+
+------------------------------------------------------------
+FASE 3 - CALENDARIO FISCAL, VERSIONAMIENTO Y GENERACIÓN DE TAREAS FISCALES
+------------------------------------------------------------
+
+Objetivo:
+Administrar calendarios fiscales nacionales y municipales por año, impuesto, municipio, periodo y criterio de vencimiento.
+
+Principio:
+El impuesto no guarda fechas. Las fechas viven en CalendarioFiscal.
+
+Entidades:
+- CalendarioFiscal.
+- VersionCalendarioFiscal.
+- ImportacionCalendarioFiscal.
+- TareaFiscalPreliminar.
+- AuditoriaCalendario.
+
+Entidad CalendarioFiscal:
+- id.
+- impuestoId.
+- anio.
+- periodo.
+- periodicidad.
+- nivel.
+- pais.
+- departamento.
+- municipio.
+- ultimoDigitoNit.
+- digitoVerificacion.
+- tipoContribuyente.
+- regimen.
+- fechaInicioPeriodo.
+- fechaFinPeriodo.
+- fechaVencimiento.
+- fuenteCalendario.
+- version.
+- estado.
+
+Reglas:
+- Solo empresas activas generan tareas fiscales.
+- Calendarios nacionales pueden tener municipio vacío.
+- Calendarios municipales deben incluir municipio.
+- Cambios de calendario generan nueva versión.
+- Tareas históricas presentadas o cerradas no se modifican.
+- Tareas pendientes o en proceso pueden actualizarse con nueva versión.
+- Tareas generadas desde calendario fiscal deben tener tipoTarea = fiscal y origen = calendario_fiscal.
+
+Estados calendario:
+- borrador.
+- validado.
+- activo.
+- reemplazado.
+- anulado.
+
+Resultado esperado:
+Calendarios fiscales cargados y tareas fiscales generadas correctamente.
+
+------------------------------------------------------------
+FASE 4 - USUARIOS, ROLES, PERMISOS Y SEGURIDAD DE ACCESO
+------------------------------------------------------------
+
+Objetivo:
+Administrar usuarios internos y clientes con cargos, roles, niveles de privilegio, checklist de permisos, empresas asignadas y supervisión.
+
+Modelo:
+Usuario
+↓
+Cargo
+↓
+Rol base
+↓
+Nivel de privilegio
+↓
+Checklist de permisos
+↓
+Empresas asignadas
+↓
+Usuarios supervisados
+
+Cargos:
+- Pasante.
+- Aprendiz.
+- Auxiliar contable.
+- Contador profesional.
+- Contador senior.
+- Jefe de área.
+- Gerente.
+- Administrador del sistema.
+- Cliente representante legal.
+- Cliente contador interno.
+- Cliente auxiliar administrativo.
+- Cliente gerente financiero.
+
+Roles:
+- cliente.
+- operativo_basico.
+- operativo_medio.
+- supervisor.
+- gerente.
+- administrador.
+- solo_lectura.
+
+Niveles:
+- basico.
+- medio.
+- alto.
+- super.
+- cliente.
+
+Entidades:
+- Usuario.
+- Cargo.
+- Rol.
+- Permiso.
+- RolPermiso.
+- UsuarioPermiso.
+- EmpresaUsuario.
+- SupervisorUsuario.
+- AuditoriaAcceso.
+
+Reglas:
+- Solo gerente o administrador crea usuarios.
+- Solo gerente o administrador asigna permisos sensibles.
+- Gerente puede ver todas las empresas.
+- Usuarios operativos solo ven empresas asignadas.
+- Ver empresa no significa ver datos sensibles.
+- Cliente solo ve empresa asociada.
+- Cliente no ve comentarios internos.
+- Supervisor ve tareas de supervisados.
+- No eliminar usuarios con historial.
+- Desactivar usuario cliente no elimina empresa.
+- Antes de desactivar usuario interno con tareas, solicitar reasignación.
+
+Permisos sensibles:
+- ver_todas_empresas.
+- ver_contacto_empresa.
+- ver_datos_sensibles_empresa.
+- descargar_documentos_empresa.
+- descargar_rut.
+- crear_usuarios.
+- editar_usuarios.
+- asignar_permisos.
+- registrar_pago.
+- exportar_reportes.
+- ver_dashboard_general.
+- desactivar_empresa.
+- archivar_empresa.
+- reactivar_empresa.
+
+Resultado esperado:
+Usuarios y clientes controlados por permisos, protegiendo datos sensibles y cartera de clientes.
+
+------------------------------------------------------------
+FASE 5 - GESTIÓN INTEGRAL DE TAREAS FISCALES, CONTABLES, ADMINISTRATIVAS, OPERATIVAS Y RECURRENTES
+------------------------------------------------------------
+
+Objetivo:
+Crear un panel general de tareas que permita gestionar tareas fiscales automáticas y tareas no fiscales manuales o recurrentes.
+
+Tipos de tarea:
+- fiscal.
+- contable.
+- administrativa.
+- operativa.
+- comercial.
+- interna.
+- cliente.
+
+Origen:
+- calendario_fiscal.
+- manual_gerente.
+- plantilla_recurrente.
+- solicitud_cliente.
+- ajuste_interno.
+- sistema.
+
+Entidad general Tarea:
+- id.
+- empresaId.
+- titulo.
+- descripcion.
+- tipoTarea.
+- categoria.
+- origen.
+- estadoGeneral.
+- prioridad.
+- responsableId.
+- asignadoPor.
+- fechaAsignacion.
+- fechaInicio.
+- fechaLimiteInterna.
+- fechaVencimiento.
+- esRecurrente.
+- recurrenciaId.
+- plantillaTareaId.
+- requiereEvidencia.
+- requiereRevision.
+- visibleParaCliente.
+- creadaPor.
+- actualizadaPor.
+- createdAt.
+- updatedAt.
+
+Campos especiales para tarea fiscal:
+- obligacionFiscalEmpresaId.
+- impuestoId.
+- calendarioFiscalId.
+- anio.
+- periodo.
+- estadoLiquidacion.
+- estadoPresentacion.
+- estadoPago.
+- responsableLiquidacionId.
+- responsableRevisionId.
+- responsablePresentacionId.
+- responsableSeguimientoPagoId.
+- responsablePago.
+- fechaLiquidacion.
+- fechaRevision.
+- fechaPresentacion.
+- fechaEnvioCliente.
+- fechaLimitePago.
+- fechaPago.
+- valorLiquidado.
+- valorPagado.
+- medioEnvioCliente.
+- soporteLiquidacionId.
+- soportePresentacionId.
+- soportePagoId.
+- observacionPago.
+- causaNoPago.
+- requierePago.
+- generadaDesdeCalendarioId.
+- versionCalendario.
+
+Estados generales:
+- pendiente.
+- asignada.
+- en_proceso.
+- en_revision.
+- completada.
+- rechazada.
+- vencida.
+- cancelada.
+- no_aplica.
+
+Estados fiscales:
+estadoLiquidacion:
+- pendiente_liquidacion.
+- en_liquidacion.
+- liquidada.
+- en_revision.
+- aprobada.
+- rechazada.
+- no_aplica.
+
+estadoPresentacion:
+- no_aplica.
+- pendiente_presentacion.
+- lista_para_presentar.
+- presentada.
+- rechazada.
+- vencida.
+- requiere_revision.
+
+estadoPago:
+- no_aplica.
+- pendiente_pago.
+- enviado_al_cliente.
+- pagado.
+- pagado_fuera_de_fecha.
+- no_pagado_por_cliente.
+- sin_soporte_pago.
+- requiere_revision.
+
+PlantillaTarea:
+- id.
+- nombrePlantilla.
+- descripcion.
+- tipoTarea.
+- categoria.
+- prioridad.
+- requiereEvidencia.
+- requiereRevision.
+- visibleParaCliente.
+- instrucciones.
+- activo.
+- creadoPor.
+
+RecurrenciaTarea:
+- id.
+- plantillaTareaId.
+- empresaId.
+- tituloBase.
+- descripcionBase.
+- tipoTarea.
+- categoria.
+- frecuencia.
+- intervalo.
+- diaMes.
+- diaSemana.
+- mes.
+- fechaInicio.
+- fechaFin.
+- proximaGeneracion.
+- responsableId.
+- prioridad.
+- requiereEvidencia.
+- requiereRevision.
+- estado.
+- creadoPor.
+
+Frecuencias:
+- diaria.
+- semanal.
+- mensual.
+- bimestral.
+- trimestral.
+- semestral.
+- anual.
+- personalizada.
+
+Reglas:
+- Las tareas no fiscales pueden existir sin impuesto ni obligación fiscal.
+- Las tareas recurrentes generan tareas individuales.
+- Cancelar una recurrencia no elimina tareas históricas.
+- Si empresa está suspendida, inactiva o archivada, no generar nuevas tareas recurrentes.
+- Si responsable está inactivo, alertar antes de asignar.
+- El panel debe filtrar por empresa, responsable, tipo, categoría, estado, prioridad, fecha, origen y recurrencia.
+
+Resultado esperado:
+Panel general de tareas, no limitado a impuestos.
+
+------------------------------------------------------------
+FASE 6 - NOTIFICACIONES, ALERTAS, CORREOS REALES, ESCALAMIENTO Y COMUNICACIÓN
+------------------------------------------------------------
+
+Objetivo:
+Crear un sistema de alertas internas y correos reales para usuarios internos y clientes, con validaciones de envío, historial y escalamiento.
+
+Principio:
+La alerta interna siempre se crea.
+El correo solo se envía si pasa validaciones.
+
+Canales:
+- sistema.
+- correo.
+- portal_cliente.
+- whatsapp_futuro.
+
+Entidades:
+- AlertaSistema.
+- ReglaAlerta.
+- NotificacionCorreo.
+- PlantillaCorreo.
+- ConfiguracionCorreoSistema.
+- PreferenciaNotificacionUsuario.
+- PreferenciaNotificacionEmpresa.
+- HistorialEnvioNotificacion.
+- EscalamientoAlerta.
+
+Tipos de alerta:
+- tarea_proxima_vencer.
+- tarea_vencida.
+- tarea_sin_responsable.
+- tarea_recurrente_no_generada.
+- tarea_manual_asignada.
+- tarea_rechazada.
+- evidencia_faltante.
+- liquidacion_pendiente.
+- liquidacion_en_revision_vencida.
+- presentacion_pendiente.
+- presentacion_vencida.
+- pago_pendiente_cliente.
+- pago_vencido_cliente.
+- soporte_faltante.
+- empresa_sin_obligaciones_confirmadas.
+- obligacion_sin_calendario.
+- calendario_no_cargado.
+- calendario_por_vencer.
+- usuario_con_tareas_vencidas.
+- empresa_suspendida_con_tareas_abiertas.
+- empresa_inactiva_con_pago_pendiente.
+- cliente_no_ha_cargado_soporte_pago.
+- fallo_envio_correo.
+- permiso_sensible_activado.
+- solicitud_documento_pendiente.
+- solicitud_documento_vencida.
+
+Reglas de correo:
+Enviar a usuarios internos cuando:
+- Nueva tarea asignada.
+- Tarea próxima a vencer.
+- Tarea vencida.
+- Tarea rechazada.
+- Liquidación pendiente de revisión.
+- Soporte faltante.
+- Cambio por calendario.
+- Reasignación.
+- Obligación sin calendario.
+- Pago cliente vencido.
+
+Enviar al cliente cuando:
+- Impuesto liquidado pendiente de pago.
+- Pago próximo a vencer.
+- Pago vencido.
+- Solicitud de soporte de pago.
+- Solicitud de documentos.
+- Confirmación de soporte recibido.
+- Tarea compartida.
+
+No enviar correo cuando:
+- Usuario inactivo.
+- Cliente sin correo confirmado.
+- Empresa inactiva o archivada, salvo seguimiento permitido.
+- Tarea cerrada o no_aplica.
+- Alerta duplicada.
+- Falta permiso.
+- Canal desactivado.
+- SMTP no configurado.
+- EMAIL_NOTIFICATIONS_ENABLED = false.
+
+Variables:
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=notificaciones@contasolutions.com
+SMTP_SECURE=true
+EMAIL_NOTIFICATIONS_ENABLED=true
+
+Resultado esperado:
+Sistema preventivo de alertas y correos controlados.
+
+------------------------------------------------------------
+FASE 7 - DASHBOARD GERENCIAL, REPORTES E INDICADORES
+------------------------------------------------------------
+
+Objetivo:
+Crear vistas gerenciales para medir cumplimiento, riesgos, tareas, pagos, usuarios, alertas y operación.
+
+Indicadores:
+- Empresas activas.
+- Empresas suspendidas.
+- Empresas inactivas.
+- Tareas del mes.
+- Tareas fiscales.
+- Tareas no fiscales.
+- Tareas recurrentes.
+- Tareas vencidas.
+- Tareas próximas.
+- Tareas sin responsable.
+- Tareas sin evidencia.
+- Impuestos liquidados.
+- Impuestos presentados.
+- Pagos pendientes del cliente.
+- Pagos vencidos.
+- Alertas críticas.
+- Correos enviados.
+- Correos fallidos.
+- Obligaciones sin calendario.
+- Cumplimiento por responsable.
+- Cumplimiento por empresa.
+- Cumplimiento por equipo.
+- Riesgo por cliente.
+
+Vistas:
+- Dashboard gerente.
+- Dashboard supervisor.
+- Dashboard usuario.
+- Portal cliente.
+- Reporte mensual.
+- Reporte tareas vencidas.
+- Reporte pagos pendientes.
+- Reporte tareas recurrentes.
+- Reporte obligaciones.
+- Reporte desempeño usuario.
+- Reporte alertas.
+- Reporte correos fallidos.
+
+Reglas:
+- Dashboard operativo muestra empresas activas por defecto.
+- Empresas inactivas o archivadas solo con filtro.
+- Gerente ve todo.
+- Supervisor ve equipo.
+- Usuario ve tareas propias.
+- Cliente ve su empresa y contenido compartido.
+
+Resultado esperado:
+Control gerencial completo.
+
+------------------------------------------------------------
+FASE 8 - CONFIGURACIÓN GENERAL DEL SISTEMA
+------------------------------------------------------------
+
+Objetivo:
+Crear un módulo administrativo para configurar reglas, parámetros, catálogos, plantillas, alertas, correos, evidencias, prioridades, estados y datos institucionales sin modificar código.
+
+Justificación:
+En producción no conviene depender del desarrollador para cambiar días de alerta, plantillas de correo, categorías de tareas, tipos de evidencia o parámetros del sistema.
+
+Alcance:
+El sistema debe permitir configurar:
+
+- Datos institucionales.
+- Nombre de la empresa operadora.
+- Logo.
+- Colores básicos.
+- Correo remitente.
+- Firma de correos.
+- Parámetros SMTP.
+- Días de alerta.
+- Frecuencia de alertas.
+- Plantillas de correo.
+- Tipos de tareas.
+- Categorías de tareas.
+- Prioridades.
+- Estados permitidos.
+- Tipos de evidencia.
+- Evidencias obligatorias por tipo de tarea.
+- Permisos sensibles.
+- Roles base.
+- Periodicidades.
+- Reglas de generación de tareas.
+- Reglas de escalamiento.
+- Configuración del portal cliente.
+- Configuración de documentos permitidos.
+- Configuración de retención de archivos.
+- Configuración de límites por organización para modelo SaaS.
+
+Entidades:
+- ConfiguracionSistema.
+- ParametroSistema.
+- CatalogoSistema.
+- OpcionCatalogo.
+- ConfiguracionCorreoSistema.
+- ConfiguracionAlertas.
+- ConfiguracionPortalCliente.
+- ConfiguracionEvidencia.
+- ConfiguracionSaaS.
+- HistorialConfiguracion.
+
+Entidad ParametroSistema:
+- id.
+- clave.
+- valor.
+- tipoDato.
+- modulo.
+- descripcion.
+- editable.
+- estado.
+- actualizadoPor.
+- updatedAt.
+
+Ejemplos de parámetros:
+- DIAS_ALERTA_PREVENTIVA = 7.
+- DIAS_ALERTA_URGENTE = 3.
+- EMAIL_NOTIFICATIONS_ENABLED = true.
+- PERMITIR_CLIENTE_CARGAR_SOPORTES = true.
+- REQUIERE_EVIDENCIA_PARA_CERRAR_TAREA = true.
+- MAX_INTENTOS_LOGIN = 5.
+- BLOQUEO_LOGIN_MINUTOS = 30.
+
+Reglas:
+- Solo gerente o administrador puede modificar configuración crítica.
+- Cambios de configuración sensible deben generar auditoría.
+- La configuración debe poder aplicarse por organización en modo SaaS.
+- Los valores por defecto deben existir al instalar el sistema.
+- No permitir borrar catálogos usados históricamente; solo desactivar.
+- Los cambios no deben alterar históricos cerrados.
+
+Vistas:
+- Configuración general.
+- Configuración de correo.
+- Configuración de alertas.
+- Configuración de tareas.
+- Configuración de evidencias.
+- Configuración de portal cliente.
+- Configuración de roles y permisos.
+- Historial de configuración.
+
+Resultado esperado:
+Sistema configurable sin tocar código.
+
+------------------------------------------------------------
+FASE 9 - PORTAL DEL CLIENTE
+------------------------------------------------------------
+
+Objetivo:
+Crear un portal limitado y seguro para que el cliente pueda ingresar, consultar el estado de su empresa, ver pagos pendientes, cargar soportes, responder solicitudes y consultar información compartida.
+
+Justificación:
+El cliente necesita visibilidad y capacidad de respuesta, pero sin acceder a información interna, otros clientes, comentarios privados ni gestión operativa interna.
+
+Alcance del portal cliente:
+El cliente puede:
+
+- Iniciar sesión.
+- Ver su empresa o empresas asociadas.
+- Ver estado general de obligaciones compartidas.
+- Ver pagos pendientes.
+- Ver pagos vencidos.
+- Cargar soporte de pago.
+- Ver soportes compartidos.
+- Descargar documentos compartidos.
+- Ver solicitudes de documentos.
+- Responder solicitudes.
+- Cargar documentos solicitados.
+- Ver alertas dirigidas al cliente.
+- Ver historial básico visible.
+- Actualizar datos de contacto permitidos, si se configura.
+
+El cliente no puede:
+
+- Ver otras empresas.
+- Ver usuarios internos.
+- Ver comentarios internos.
+- Ver auditoría interna.
+- Ver documentos no compartidos.
+- Ver datos comerciales internos.
+- Ver reportes gerenciales internos.
+- Cambiar obligaciones fiscales.
+- Cambiar calendarios.
+- Cerrar tareas internas.
+- Ver tareas no compartidas.
+
+Entidades:
+- PortalClienteConfig.
+- ClienteEmpresaAcceso.
+- DocumentoCompartidoCliente.
+- AlertaCliente.
+- ActividadPortalCliente.
+- PreferenciaClienteNotificacion.
+
+Reglas:
+- El cliente solo ve empresas asociadas en EmpresaUsuario.
+- El cliente solo ve información marcada como visibleParaCliente.
+- Los comentarios internos no se muestran.
+- Los documentos deben marcarse como compartidos para ser visibles.
+- El cliente puede cargar soportes, pero estos deben pasar a revisión interna.
+- El cliente no puede eliminar documentos una vez cargados; puede solicitar reemplazo.
+- Todo acceso del cliente debe quedar auditado.
+- Si el usuario cliente se desactiva, no se elimina la empresa.
+
+Vistas:
+- Inicio cliente.
+- Estado de mi empresa.
+- Pagos pendientes.
+- Solicitudes de documentos.
+- Cargar soporte.
+- Documentos compartidos.
+- Alertas.
+- Historial visible.
+
+Estados de documentos cargados por cliente:
+- recibido.
+- en_revision.
+- aprobado.
+- rechazado.
+- reemplazado.
+
+Resultado esperado:
+Portal cliente seguro, útil y limitado.
+
+------------------------------------------------------------
+FASE 10 - SOLICITUDES DE DOCUMENTOS E INFORMACIÓN AL CLIENTE
+------------------------------------------------------------
+
+Objetivo:
+Crear un módulo para solicitar, recibir, revisar y aprobar documentos o información requerida al cliente para cumplir tareas contables, fiscales o administrativas.
+
+Justificación:
+Muchas tareas dependen de documentos del cliente. Sin este módulo, la operación queda incompleta y se pierde trazabilidad.
+
+Ejemplos de documentos solicitados:
+- Extractos bancarios.
+- Facturas de venta.
+- Facturas de compra.
+- Nómina.
+- Planillas de seguridad social.
+- Comprobantes de pago.
+- Certificados.
+- Recibos.
+- Soportes contables.
+- Información para impuestos.
+- Soporte de pago de declaración.
+- Documentos legales.
+- Actualización de RUT.
+- Cámara de comercio.
+- Contratos.
+- Información de cartera.
+
+Entidades:
+- SolicitudDocumento.
+- ItemSolicitudDocumento.
+- DocumentoCliente.
+- RevisionDocumentoCliente.
+- HistorialSolicitudDocumento.
+- ComentarioSolicitudDocumento.
+
+Entidad SolicitudDocumento:
+- id.
+- empresaId.
+- clienteUsuarioId.
+- tareaId.
+- titulo.
+- descripcion.
+- fechaSolicitud.
+- fechaLimite.
+- estado.
+- solicitadaPor.
+- visibleParaCliente.
+- prioridad.
+- createdAt.
+- updatedAt.
+
+Entidad ItemSolicitudDocumento:
+- id.
+- solicitudDocumentoId.
+- nombreDocumento.
+- descripcion.
+- obligatorio.
+- estado.
+- archivoId.
+- observaciones.
+- fechaRecepcion.
+
+Estados de solicitud:
+- borrador.
+- enviada.
+- vista_por_cliente.
+- parcialmente_recibida.
+- recibida.
+- en_revision.
+- aprobada.
+- rechazada.
+- vencida.
+- cancelada.
+
+Estados por documento:
+- pendiente.
+- recibido.
+- en_revision.
+- aprobado.
+- rechazado.
+- reemplazado.
+
+Flujo:
+1. Usuario interno crea solicitud.
+2. Selecciona empresa y cliente destinatario.
+3. Define documentos requeridos.
+4. Define fecha límite.
+5. Envía solicitud.
+6. Sistema crea alerta interna y alerta cliente.
+7. Si aplica, envía correo al cliente.
+8. Cliente carga documentos en portal.
+9. Sistema registra recepción.
+10. Usuario interno revisa.
+11. Aprueba o rechaza.
+12. Si rechaza, solicita corrección.
+13. Documentos aprobados pueden asociarse a tareas o evidencias.
+
+Reglas:
+- Una solicitud puede estar asociada a una tarea.
+- Una tarea puede requerir una o varias solicitudes al cliente.
+- Los documentos cargados por cliente no se eliminan; se reemplazan.
+- Si la solicitud vence, genera alerta.
+- Si el cliente carga documento incorrecto, se rechaza con motivo.
+- El cliente solo ve sus solicitudes.
+- El gerente puede ver todas.
+- El usuario responsable ve las solicitudes de sus empresas asignadas.
+- Los documentos aprobados pueden alimentar evidencias de tarea.
+- Todo cambio queda en historial.
+
+Alertas:
+- solicitud_documento_enviada.
+- solicitud_documento_pendiente.
+- solicitud_documento_por_vencer.
+- solicitud_documento_vencida.
+- documento_cliente_recibido.
+- documento_cliente_rechazado.
+- documento_cliente_aprobado.
+
+Resultado esperado:
+Control total de información solicitada al cliente.
+
+------------------------------------------------------------
+FASE 11 - AUDITORÍA, SEGURIDAD, RESPALDO Y PREPARACIÓN SAAS
+------------------------------------------------------------
+
+Objetivo:
+Fortalecer el sistema con auditoría completa, seguridad, respaldo de información, control de sesiones, logs y arquitectura preparada para crecer como software como servicio.
+
+------------------------------------------------------------
+11.1 AUDITORÍA
+------------------------------------------------------------
+
+Acciones auditables:
+- Crear empresa.
+- Editar empresa.
+- Cambiar estado de empresa.
+- Descargar RUT.
+- Ver datos sensibles.
+- Crear usuario.
+- Cambiar permisos.
+- Activar permiso sensible.
+- Desactivar usuario.
+- Crear obligación.
+- Confirmar obligación.
+- Marcar obligación como no aplica.
+- Crear calendario.
+- Activar calendario.
+- Generar tareas.
+- Crear tarea manual.
+- Crear tarea recurrente.
+- Cerrar tarea.
+- Marcar impuesto como presentado.
+- Registrar pago.
+- Marcar no pago por cliente.
+- Cargar evidencia.
+- Rechazar evidencia.
+- Enviar solicitud al cliente.
+- Cliente carga documento.
+- Enviar correo.
+- Fallar correo.
+- Exportar reporte.
+- Cambiar configuración.
+
+Entidad AuditoriaGeneral:
+- id.
+- organizacionId.
+- usuarioId.
+- tipoUsuario.
+- accion.
+- modulo.
+- recursoTipo.
+- recursoId.
+- descripcion.
+- valorAnterior.
+- valorNuevo.
+- ip.
+- userAgent.
+- fecha.
+
+Reglas:
+- Auditoría no debe ser editable por usuarios normales.
+- No borrar auditoría.
+- Debe filtrarse por fecha, usuario, módulo, empresa y acción.
+- En SaaS, auditoría debe separarse por organización.
+
+------------------------------------------------------------
+11.2 SEGURIDAD
+------------------------------------------------------------
+
+Controles:
+- Login con correo y contraseña.
+- Hash seguro de contraseñas.
+- Cambio obligatorio de contraseña inicial.
+- Bloqueo por intentos fallidos.
+- Recuperación segura de contraseña.
+- Sesiones con expiración.
+- Tokens seguros.
+- Validación de permisos en backend.
+- No confiar solo en frontend.
+- Control de acceso por organización.
+- Control de acceso por empresa asignada.
+- Protección de archivos.
+- Firmar o proteger URLs de documentos.
+- Rate limiting.
+- Sanitización de entradas.
+- Validación de archivos.
+- Límite de tamaño de archivos.
+- Escaneo básico de tipo MIME.
+- Logs de errores.
+- Variables sensibles fuera del código.
+
+Reglas:
+- Un usuario no puede acceder a datos de otra organización.
+- Un cliente no puede acceder a otra empresa.
+- Un usuario interno no ve empresas no asignadas.
+- Los permisos se validan en backend.
+- Los archivos no deben guardarse en carpetas públicas sin control.
+- Toda descarga sensible debe auditarse.
+
+------------------------------------------------------------
+11.3 RESPALDOS
+------------------------------------------------------------
+
+Alcance:
+- Base de datos.
+- Archivos cargados.
+- Documentos RUT.
+- Evidencias.
+- Soportes de pago.
+- Configuración.
+- Auditoría.
+
+Reglas:
+- Respaldos automáticos programados.
+- Respaldos diarios para base de datos.
+- Respaldos de archivos según volumen.
+- Prueba periódica de restauración.
+- Registro de cada respaldo.
+- Alerta si falla respaldo.
+- Separar respaldo de producción.
+- Política de retención.
+
+Entidad BackupRegistro:
+- id.
+- tipoBackup.
+- fechaInicio.
+- fechaFin.
+- estado.
+- ruta.
+- tamanio.
+- error.
+- ejecutadoPor.
+- createdAt.
+
+Estados:
+- pendiente.
+- ejecutando.
+- exitoso.
+- fallido.
+
+------------------------------------------------------------
+11.4 LOGS Y MONITOREO
+------------------------------------------------------------
+
+Registrar:
+- Errores backend.
+- Fallos de correo.
+- Fallos de carga de archivos.
+- Fallos de extracción RUT.
+- Fallos de generación de tareas.
+- Intentos de acceso no autorizado.
+- Tiempos de respuesta críticos.
+
+Entidades:
+- LogSistema.
+- LogError.
+- LogIntegracion.
+
+Resultado:
+El gerente o administrador puede saber si algo falla antes de que afecte la operación.
+
+------------------------------------------------------------
+11.5 PREPARACIÓN SAAS
+------------------------------------------------------------
+
+Objetivo:
+Dejar la arquitectura lista para que el sistema pueda ser usado por varias empresas contables, no solo una.
+
+Concepto:
+Cada empresa contable que use el sistema sería una organización o tenant.
+
+Entidad Organizacion:
+- id.
+- nombre.
+- nit.
+- plan.
+- estado.
+- dominioPersonalizado.
+- logo.
+- colorPrincipal.
+- emailRemitente.
+- limiteUsuarios.
+- limiteEmpresasCliente.
+- limiteAlmacenamiento.
+- createdAt.
+- updatedAt.
+
+Todas las entidades importantes deben incluir:
+- organizacionId.
+
+Ejemplos:
+- Empresa.organizacionId.
+- Usuario.organizacionId.
+- Tarea.organizacionId.
+- ObligacionFiscalEmpresa.organizacionId.
+- CalendarioFiscal.organizacionId, si es propio.
+- ConfiguracionSistema.organizacionId.
+- AuditoriaGeneral.organizacionId.
+
+Reglas SaaS:
+- Ningún usuario puede ver datos de otra organización.
+- Configuración puede ser por organización.
+- Plantillas pueden ser globales o por organización.
+- Permisos pueden tener base común y ajustes por organización.
+- El almacenamiento de archivos debe separarse por organización.
+- Reportes deben filtrar por organización.
+- Auditoría debe separar por organización.
+- En el futuro se pueden crear planes: básico, profesional, empresarial.
+
+Planes sugeridos:
+Plan básico:
+- Número limitado de empresas.
+- Número limitado de usuarios.
+- Alertas por correo.
+- Dashboard básico.
+
+Plan profesional:
+- Más empresas.
+- Portal cliente.
+- Tareas recurrentes.
+- Reportes avanzados.
+
+Plan empresarial:
+- Multiusuario avanzado.
+- Configuración personalizada.
+- Dominio personalizado.
+- Mayor almacenamiento.
+- Integraciones futuras.
+
+Resultado esperado:
+Sistema listo para crecer comercialmente como SaaS.
+
+------------------------------------------------------------
+TECNOLOGÍAS RECOMENDADAS
+------------------------------------------------------------
+
+Tipo de sistema:
+Aplicación web en navegador, responsive, con posibilidad de evolucionar a SaaS.
+
+------------------------------------------------------------
+Frontend recomendado
+------------------------------------------------------------
+
+Opción principal:
+- React.
+- Vite.
+- TypeScript.
+- Tailwind CSS.
+
+Librerías útiles:
+- React Router para rutas.
+- TanStack Query para manejo de datos.
+- React Hook Form para formularios.
+- Zod para validaciones.
+- shadcn/ui para componentes visuales.
+- Recharts para gráficos del dashboard.
+- Lucide Icons para iconografía.
+
+Justificación:
+Rápido, moderno, mantenible y adecuado para dashboards, formularios y sistemas administrativos.
+
+------------------------------------------------------------
+Backend recomendado
+------------------------------------------------------------
+
+Opción principal:
+- Node.js.
+- Express o NestJS.
+- TypeScript.
+
+Recomendación:
+Para un sistema grande y ordenado, NestJS puede ser mejor por módulos, servicios, controladores, validaciones y escalabilidad.
+
+Para avanzar más rápido si el equipo está aprendiendo:
+Express con buena estructura por módulos también sirve.
+
+Librerías:
+- Prisma ORM o Mongoose según base de datos.
+- Zod o class-validator para validar datos.
+- Multer para carga de archivos.
+- Nodemailer para correos.
+- JWT para autenticación.
+- bcrypt para contraseñas.
+- Helmet para seguridad HTTP.
+- express-rate-limit para limitar intentos.
+- Winston o Pino para logs.
+
+------------------------------------------------------------
+Base de datos recomendada
+------------------------------------------------------------
+
+Opción recomendada para este sistema:
+- PostgreSQL.
+
+Razones:
+- Relacional.
+- Fuerte para entidades como empresas, usuarios, permisos, tareas, obligaciones, calendarios.
+- Mejor para reportes.
+- Mejor para integridad de datos.
+- Buena base para SaaS.
+
+Alternativa:
+- MongoDB puede servir si ya está avanzado el proyecto, pero para este caso PostgreSQL es más ordenado y sólido.
+
+ORM recomendado:
+- Prisma.
+
+------------------------------------------------------------
+Archivos y documentos
+------------------------------------------------------------
+
+Desarrollo:
+- Almacenamiento local controlado.
+
+Producción inicial:
+- Carpeta protegida en servidor.
+- Rutas no públicas.
+- Control de descarga por backend.
+
+Producción escalable:
+- S3 compatible.
+- AWS S3.
+- Cloudflare R2.
+- DigitalOcean Spaces.
+- Backblaze B2.
+
+Regla:
+Los documentos no deben quedar expuestos públicamente.
+
+------------------------------------------------------------
+Correos
+------------------------------------------------------------
+
+Desarrollo:
+- Ethereal Email.
+- Mailtrap.
+- SMTP de pruebas.
+
+Producción pequeña:
+- SMTP corporativo.
+- Google Workspace.
+- Microsoft 365.
+- Brevo.
+- SendGrid.
+- Resend.
+- Mailgun.
+
+Librería:
+- Nodemailer.
+
+Regla:
+La alerta interna siempre existe aunque falle el correo.
+
+------------------------------------------------------------
+Extracción de RUT
+------------------------------------------------------------
+
+Primera versión:
+- pdf-parse para PDFs con texto.
+- OCR solo si el PDF es escaneado.
+
+OCR:
+- Tesseract.js.
+- Servicio externo en una fase futura si se requiere más precisión.
+
+IA opcional:
+- Enviar texto extraído a un modelo para estructurar JSON.
+- Siempre mostrar revisión humana antes de guardar.
+
+------------------------------------------------------------
+Autenticación y seguridad
+------------------------------------------------------------
+
+- JWT con refresh token o sesiones seguras.
+- bcrypt para contraseñas.
+- Rate limit en login.
+- Bloqueo por intentos.
+- Roles y permisos en backend.
+- Auditoría de acciones sensibles.
+- Variables de entorno.
+- HTTPS en producción.
+- Backups automáticos.
+
+------------------------------------------------------------
+Infraestructura recomendada
+------------------------------------------------------------
+
+Producción pequeña:
+- VPS Linux.
+- Docker.
+- Docker Compose.
+- Nginx como proxy.
+- PostgreSQL.
+- Backend Node.
+- Frontend servido por Nginx.
+- Certificado SSL con Let's Encrypt.
+
+Opciones VPS:
+- Hetzner.
+- DigitalOcean.
+- Linode.
+- AWS Lightsail.
+- Contabo.
+
+Si ya existe mini PC:
+Puede usarse para pruebas o entorno interno, pero para SaaS público es mejor VPS con buena disponibilidad.
+
+------------------------------------------------------------
+Contenedores
+------------------------------------------------------------
+
+Usar Docker para:
+- frontend.
+- backend.
+- base de datos.
+- servicio de backups.
+- proxy Nginx.
+
+Ventajas:
+- Despliegue más limpio.
+- Fácil migración.
+- Control de versiones.
+- Más orden para producción.
+
+------------------------------------------------------------
+Monitoreo
+------------------------------------------------------------
+
+Inicial:
+- Logs con Winston o Pino.
+- Registro de errores en base de datos.
+- Alertas internas de fallos críticos.
+
+Más adelante:
+- Sentry.
+- Uptime Kuma.
+- Grafana.
+- Prometheus.
+
+------------------------------------------------------------
+Recomendación de arquitectura por módulos
+------------------------------------------------------------
+
+Módulos backend:
+- auth.
+- users.
+- roles.
+- permissions.
+- companies.
+- rut-import.
+- taxes.
+- obligations.
+- calendars.
+- tasks.
+- recurrences.
+- templates.
+- documents.
+- client-portal.
+- client-requests.
+- alerts.
+- notifications.
+- dashboards.
+- reports.
+- settings.
+- audit.
+- backups.
+- organizations.
+
+------------------------------------------------------------
+Recomendación para desarrollo lineal
+------------------------------------------------------------
+
+Orden de construcción recomendado:
+
+1. Autenticación básica y usuarios.
+2. Roles y permisos mínimos.
+3. Creación de empresa manual.
+4. Importación de RUT.
+5. Responsabilidades y obligaciones.
+6. Calendario fiscal.
+7. Tareas generales.
+8. Tareas fiscales.
+9. Evidencias.
+10. Alertas internas.
+11. Correos reales.
+12. Portal cliente.
+13. Solicitudes al cliente.
+14. Dashboard.
+15. Configuración general.
+16. Auditoría avanzada.
+17. Backups.
+18. Multi-tenant SaaS.
+
+Aunque conceptualmente las fases están definidas del 1 al 11, en desarrollo real puede convenir iniciar con autenticación y usuarios mínimos para proteger el sistema desde el principio.
+
+------------------------------------------------------------
+CONCLUSIÓN FINAL
+------------------------------------------------------------
+
+El proyecto queda organizado en 11 fases armónicas:
+
+1. Empresa desde RUT.
+2. Obligaciones fiscales.
+3. Calendario fiscal.
+4. Usuarios, roles y permisos.
+5. Tareas generales y fiscales.
+6. Alertas y correos.
+7. Dashboard y reportes.
+8. Configuración general.
+9. Portal cliente.
+10. Solicitudes de documentos.
+11. Auditoría, seguridad, respaldo y SaaS.
+
+Estas fases permiten construir primero el control operativo interno, luego la comunicación con el cliente, después la medición gerencial y finalmente la escalabilidad como software de servicio.

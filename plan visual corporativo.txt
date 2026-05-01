@@ -1,0 +1,863 @@
+PLAN VISUAL Y DE IDENTIDAD CORPORATIVA DEL SISTEMA
+GUÍA PARA EQUIPO DE DISEÑO Y FRONTEND
+
+Objetivo:
+Definir el flujo de trabajo, reglas visuales, criterios de diseño y configuración de identidad corporativa del sistema, tomando como base la marca ContaSolutions.
+
+Este documento debe servir como guía para el equipo de diseño y frontend, con el fin de construir una interfaz moderna, profesional, visualmente agradable, clara y fácil de usar.
+
+------------------------------------------------------------
+1. OBJETIVO DEL MÓDULO VISUAL
+------------------------------------------------------------
+
+El sistema debe permitir configurar la identidad visual de la empresa operadora y, en una etapa SaaS, permitir que cada organización configure su propia identidad.
+
+Debe permitir:
+
+- Cargar logo principal.
+- Cargar logo compacto.
+- Cargar favicon.
+- Definir colores corporativos.
+- Definir nombre comercial.
+- Definir eslogan.
+- Configurar firma visual de correos.
+- Configurar apariencia del portal cliente.
+- Aplicar la identidad visual al sistema interno.
+- Aplicar la identidad visual a reportes.
+- Aplicar la identidad visual a correos.
+- Aplicar la identidad visual a la pantalla de login.
+- Aplicar la identidad visual al portal del cliente.
+
+La apariencia debe transmitir:
+
+- Confianza.
+- Orden.
+- Profesionalismo.
+- Modernidad.
+- Seguridad.
+- Facilidad de uso.
+
+------------------------------------------------------------
+2. IDENTIDAD VISUAL BASE DE CONTASOLUTIONS
+------------------------------------------------------------
+
+Con base en el logo compartido, la interfaz debe usar una paleta sobria, empresarial y elegante.
+
+Colores principales sugeridos:
+
+Azul corporativo principal:
+#2D466B
+
+Azul oscuro para navegación y textos destacados:
+#243A5A
+
+Dorado corporativo:
+#C5AA3C
+
+Dorado claro para hover o acentos suaves:
+#D4BC55
+
+Fondo general claro:
+#F5F6F8
+
+Blanco para tarjetas y formularios:
+#FFFFFF
+
+Gris de bordes:
+#E5E7EB
+
+Gris de texto secundario:
+#6B7280
+
+Texto principal:
+#1F2937
+
+------------------------------------------------------------
+3. USO DE COLORES
+------------------------------------------------------------
+
+Azul corporativo:
+Debe usarse en:
+
+- Menú lateral.
+- Encabezados.
+- Botones principales.
+- Enlaces importantes.
+- Títulos destacados.
+- Barra superior.
+- Elementos institucionales.
+
+Dorado corporativo:
+Debe usarse como acento en:
+
+- Elemento activo del menú.
+- Badges importantes.
+- Indicadores destacados.
+- Iconos relevantes.
+- Botones secundarios.
+- Estados en revisión.
+- Resaltados visuales.
+
+Blanco:
+Debe usarse en:
+
+- Tarjetas.
+- Formularios.
+- Tablas.
+- Paneles.
+- Modales.
+
+Gris claro:
+Debe usarse en:
+
+- Fondo general.
+- Separadores.
+- Bordes.
+- Áreas secundarias.
+
+Rojo, naranja y verde:
+Deben usarse solo para estados operativos, no como colores principales de marca.
+
+Ejemplo:
+
+- Verde: completado, pagado, aprobado.
+- Rojo: vencido, crítico, error.
+- Naranja: urgente, próximo a vencer.
+- Azul: informativo, en proceso.
+- Dorado: en revisión, preventivo o destacado.
+
+------------------------------------------------------------
+4. REGLAS VISUALES GENERALES
+------------------------------------------------------------
+
+4.1 Diseño limpio
+
+Evitar pantallas saturadas.
+
+Cada pantalla debe tener:
+
+- Título claro.
+- Descripción corta.
+- Resumen superior.
+- Filtros simples.
+- Contenido principal.
+- Acciones principales visibles.
+- Estados fáciles de identificar.
+
+4.2 Diseño basado en tarjetas
+
+Usar tarjetas para mostrar indicadores y resúmenes.
+
+Ejemplos de tarjetas:
+
+- Empresas activas.
+- Tareas vencidas.
+- Tareas próximas.
+- Pagos pendientes.
+- Alertas críticas.
+- Cumplimiento mensual.
+- Solicitudes pendientes.
+- Correos fallidos.
+
+Cada tarjeta debe tener:
+
+- Icono.
+- Número principal grande.
+- Texto descriptivo corto.
+- Color de estado.
+- Borde redondeado.
+- Sombra suave.
+- Fondo blanco.
+
+4.3 Jerarquía visual
+
+El usuario debe identificar primero lo más importante.
+
+Orden recomendado:
+
+1. Alertas críticas.
+2. Tareas vencidas.
+3. Tareas próximas.
+4. Pagos pendientes.
+5. Tareas en proceso.
+6. Información histórica.
+
+4.4 Menos es más
+
+No mostrar todo al mismo tiempo.
+
+Usar:
+
+- Filtros.
+- Pestañas.
+- Secciones plegables.
+- Vistas resumidas.
+- Botón de “Ver detalle”.
+
+------------------------------------------------------------
+5. ESTRUCTURA GENERAL DE LA INTERFAZ
+------------------------------------------------------------
+
+5.1 Layout principal
+
+El sistema debe tener:
+
+- Menú lateral izquierdo.
+- Barra superior.
+- Área principal de contenido.
+- Panel de alertas o notificaciones.
+- Acceso al perfil del usuario.
+
+5.2 Menú lateral
+
+Secciones sugeridas:
+
+- Dashboard.
+- Empresas.
+- Tareas.
+- Calendario fiscal.
+- Obligaciones.
+- Solicitudes al cliente.
+- Usuarios.
+- Alertas.
+- Reportes.
+- Configuración.
+
+Estilo recomendado:
+
+Fondo:
+#243A5A o #2D466B
+
+Texto:
+#FFFFFF
+
+Iconos:
+#FFFFFF o gris claro
+
+Elemento activo:
+#C5AA3C
+
+Hover:
+Azul ligeramente más claro.
+
+El menú debe poder contraerse para ahorrar espacio.
+
+5.3 Barra superior
+
+Debe incluir:
+
+- Logo compacto.
+- Nombre del sistema o empresa.
+- Buscador global.
+- Campana de notificaciones.
+- Usuario activo.
+- Acceso al perfil.
+- Cerrar sesión.
+
+Ejemplo:
+
+Logo pequeño + ContaSolutions
+Subtítulo opcional: Control operativo y tributario.
+
+------------------------------------------------------------
+6. BOTONES
+------------------------------------------------------------
+
+6.1 Botón principal
+
+Usar azul corporativo.
+
+Acciones:
+
+- Crear empresa.
+- Guardar cambios.
+- Confirmar.
+- Asignar tarea.
+- Crear tarea.
+- Enviar solicitud.
+
+6.2 Botón secundario
+
+Usar dorado o borde azul.
+
+Acciones:
+
+- Editar.
+- Ver detalle.
+- Descargar.
+- Filtrar.
+- Revisar.
+
+6.3 Botón peligro
+
+Usar rojo solo para acciones delicadas.
+
+Acciones:
+
+- Desactivar usuario.
+- Archivar empresa.
+- Cancelar tarea.
+- Eliminar relación.
+- Cancelar recurrencia.
+
+Regla:
+No usar rojo para acciones normales.
+
+------------------------------------------------------------
+7. COMPONENTES BASE DEL FRONTEND
+------------------------------------------------------------
+
+El equipo debe construir componentes reutilizables.
+
+Componentes recomendados:
+
+- AppLayout.
+- Sidebar.
+- Topbar.
+- PageHeader.
+- StatCard.
+- DataTable.
+- FilterBar.
+- StatusBadge.
+- PriorityBadge.
+- ActionMenu.
+- ConfirmModal.
+- FormSection.
+- FileUploader.
+- EmptyState.
+- AlertPanel.
+- TimelineHistory.
+- PermissionChecklist.
+- ColorPicker.
+- LogoUploader.
+- PreviewThemePanel.
+- ClientPortalLayout.
+- EmailPreviewCard.
+- DashboardCard.
+- SectionTabs.
+
+------------------------------------------------------------
+8. CONFIGURACIÓN VISUAL POR EMPRESA U ORGANIZACIÓN
+------------------------------------------------------------
+
+El sistema debe permitir configurar la identidad visual desde:
+
+Configuración > Apariencia e identidad
+
+Campos recomendados:
+
+- nombreEmpresa.
+- nombreComercial.
+- eslogan.
+- logoPrincipal.
+- logoCompacto.
+- favicon.
+- colorPrimario.
+- colorSecundario.
+- colorAcento.
+- colorFondo.
+- colorTextoPrincipal.
+- colorTextoSecundario.
+- correoRemitente.
+- firmaCorreo.
+- nombreSistema.
+
+Ejemplo para ContaSolutions:
+
+{
+  "nombreEmpresa": "ContaSolutions",
+  "eslogan": "Asesores & Consultores",
+  "colorPrimario": "#2D466B",
+  "colorSecundario": "#C5AA3C",
+  "colorAcento": "#D4BC55",
+  "colorFondo": "#F5F6F8",
+  "colorTextoPrincipal": "#1F2937",
+  "colorTextoSecundario": "#6B7280"
+}
+
+------------------------------------------------------------
+9. PANTALLA DE CONFIGURACIÓN VISUAL
+------------------------------------------------------------
+
+La pantalla debe tener estas secciones:
+
+9.1 Identidad
+
+Campos:
+
+- Nombre de la organización.
+- Nombre comercial.
+- Eslogan.
+- Logo principal.
+- Logo compacto.
+- Favicon.
+
+9.2 Colores
+
+Campos:
+
+- Color principal.
+- Color secundario.
+- Color de acento.
+- Color de fondo.
+- Color de texto principal.
+- Color de texto secundario.
+
+Debe usar un selector de color.
+
+9.3 Vista previa
+
+Mostrar previsualización de:
+
+- Menú lateral.
+- Botón principal.
+- Botón secundario.
+- Tarjeta de dashboard.
+- Tabla.
+- Badge de estado.
+- Alerta.
+- Correo.
+- Portal cliente.
+
+9.4 Correos
+
+Campos:
+
+- Logo para correos.
+- Color de encabezado de correo.
+- Firma institucional.
+- Texto de pie de página.
+
+9.5 Guardado
+
+Antes de guardar:
+
+- Validar contraste.
+- Mostrar vista previa.
+- Confirmar cambios.
+- Registrar auditoría.
+
+------------------------------------------------------------
+10. REGLAS DE PERSONALIZACIÓN VISUAL
+------------------------------------------------------------
+
+Reglas:
+
+- El sistema debe tener identidad visual por defecto.
+- Si no hay logo, mostrar el nombre de la empresa en texto.
+- Si se cambia color principal, debe aplicarse al menú, botones principales y encabezados.
+- Si se cambia color secundario, debe aplicarse a acentos, badges y elementos destacados.
+- El sistema debe validar contraste para que el texto sea legible.
+- No permitir combinaciones de colores que hagan ilegible la interfaz.
+- Los cambios visuales no deben afectar datos, tareas ni permisos.
+- Solo usuarios con permiso pueden cambiar apariencia.
+- Todo cambio visual debe quedar en auditoría.
+- En modo SaaS, cada organización debe tener su propia identidad visual.
+- Los temas visuales de una organización no deben afectar a otra.
+
+Permiso recomendado:
+
+configurar_identidad_visual
+
+------------------------------------------------------------
+11. APLICACIÓN VISUAL POR MÓDULOS
+------------------------------------------------------------
+
+11.1 Dashboard
+
+Debe ser visual, claro y gerencial.
+
+Elementos:
+
+- Tarjetas superiores con indicadores clave.
+- Gráficos simples.
+- Alertas críticas destacadas.
+- Tabla de tareas próximas.
+- Resumen por empresa.
+- Resumen por responsable.
+- Resumen de pagos pendientes.
+- Resumen de solicitudes al cliente.
+
+Estilo:
+
+- Fondo claro.
+- Tarjetas blancas.
+- Números grandes.
+- Iconos en dorado o azul.
+- Estados con colores claros.
+
+11.2 Empresas
+
+Vista limpia con tabla y filtros.
+
+Columnas sugeridas:
+
+- Empresa.
+- NIT.
+- Estado.
+- Responsable.
+- Obligaciones activas.
+- Tareas pendientes.
+- Riesgo.
+- Acciones.
+
+Regla:
+No mostrar datos sensibles si el usuario no tiene permiso.
+
+11.3 Tareas
+
+Panel moderno con:
+
+- Vista tabla.
+- Vista tarjetas.
+- Filtros rápidos.
+- Estados con badges.
+- Prioridad visual.
+- Acciones rápidas.
+
+Estados visuales:
+
+- Pendiente: gris.
+- En proceso: azul.
+- En revisión: dorado.
+- Completada: verde.
+- Vencida: rojo.
+- No aplica: gris claro.
+
+11.4 Alertas
+
+Niveles visuales:
+
+- Informativa: azul suave.
+- Preventiva: dorado suave.
+- Urgente: naranja.
+- Crítica: rojo.
+
+Las alertas deben ser visibles, pero no invasivas.
+
+11.5 Portal cliente
+
+Debe ser más simple que el sistema interno.
+
+El cliente debe ver:
+
+- Estado de su empresa.
+- Pagos pendientes.
+- Solicitudes de documentos.
+- Soportes cargados.
+- Alertas importantes.
+- Documentos compartidos.
+
+No debe ver:
+
+- Comentarios internos.
+- Usuarios internos.
+- Auditoría.
+- Datos de otras empresas.
+- Información sensible interna.
+
+11.6 Correos
+
+Los correos deben usar:
+
+- Logo institucional.
+- Encabezado con color primario.
+- Botón de acción.
+- Mensaje claro.
+- Firma institucional.
+- Pie de página.
+
+No incluir información interna en correos al cliente.
+
+11.7 Reportes exportados
+
+Los reportes deben incluir:
+
+- Logo.
+- Nombre de la empresa.
+- Fecha de generación.
+- Usuario que genera.
+- Título del reporte.
+- Tabla limpia.
+- Colores institucionales discretos.
+
+------------------------------------------------------------
+12. REGLAS UX PARA FACILIDAD DE USO
+------------------------------------------------------------
+
+12.1 Evitar exceso de clics
+
+Las acciones frecuentes deben estar visibles:
+
+- Crear tarea.
+- Asignar responsable.
+- Cargar soporte.
+- Marcar como revisada.
+- Ver empresa.
+- Ver tareas vencidas.
+- Crear solicitud al cliente.
+- Ver pagos pendientes.
+
+12.2 Filtros simples
+
+Filtros principales:
+
+- Empresa.
+- Responsable.
+- Estado.
+- Fecha.
+- Tipo de tarea.
+- Prioridad.
+
+Usar botón de “Filtros avanzados” para opciones adicionales.
+
+12.3 Estados entendibles
+
+No mostrar estados técnicos.
+
+Ejemplo:
+
+Estado interno:
+presentada_pendiente_pago
+
+Mostrar:
+Presentada, pendiente de pago.
+
+Estado interno:
+no_pagado_por_cliente
+
+Mostrar:
+No pagado por el cliente.
+
+12.4 Confirmaciones en acciones delicadas
+
+Pedir confirmación para:
+
+- Desactivar empresa.
+- Archivar empresa.
+- Desactivar usuario.
+- Cambiar permisos sensibles.
+- Marcar tarea como no aplica.
+- Cancelar recurrencia.
+- Eliminar o reemplazar documento.
+- Cambiar identidad visual.
+- Exportar información sensible.
+
+12.5 Mensajes claros
+
+Evitar mensajes técnicos.
+
+Mal:
+Error 500.
+
+Bien:
+No fue posible guardar los cambios. Intenta nuevamente o contacta al administrador.
+
+------------------------------------------------------------
+13. DISEÑO RESPONSIVE
+------------------------------------------------------------
+
+El sistema debe funcionar en:
+
+- Computador.
+- Portátil.
+- Tablet.
+- Celular para consulta rápida.
+
+Prioridad:
+
+Desktop primero para operación diaria.
+Responsive para consulta rápida.
+
+En móvil:
+
+- Menú colapsado.
+- Tarjetas en columna.
+- Tablas convertidas en listas.
+- Botones grandes.
+- Filtros simplificados.
+
+------------------------------------------------------------
+14. TIPOGRAFÍA
+------------------------------------------------------------
+
+Fuente recomendada:
+
+Inter.
+
+Alternativas:
+
+- Roboto.
+- Poppins.
+- Nunito Sans.
+
+Uso:
+
+- Títulos: semibold.
+- Texto normal: regular.
+- Números de dashboard: bold.
+- Badges: medium.
+
+Reglas:
+
+- No usar demasiadas fuentes.
+- Mantener buena legibilidad.
+- Evitar textos muy pequeños.
+- Mantener contraste suficiente.
+
+------------------------------------------------------------
+15. ICONOGRAFÍA
+------------------------------------------------------------
+
+Librería recomendada:
+
+Lucide Icons.
+
+Iconos sugeridos:
+
+- Empresas: Building.
+- Tareas: CheckSquare.
+- Calendario: Calendar.
+- Usuarios: Users.
+- Alertas: Bell.
+- Reportes: BarChart.
+- Configuración: Settings.
+- Documentos: FileText.
+- Pagos: CreditCard.
+- Correos: Mail.
+- Portal cliente: UserCheck.
+- Seguridad: Shield.
+- Auditoría: History.
+
+Regla:
+Usar iconos simples, lineales y consistentes.
+
+------------------------------------------------------------
+16. DISEÑO PARA SAAS
+------------------------------------------------------------
+
+Como el sistema puede convertirse en SaaS, la identidad visual debe ser configurable por organización.
+
+Cada organización debe poder tener:
+
+- Logo propio.
+- Colores propios.
+- Nombre comercial.
+- Eslogan.
+- Firma de correos.
+- Portal cliente personalizado.
+- Reportes con su marca.
+
+Entidad sugerida:
+
+OrganizacionTemaVisual
+
+Campos:
+
+- organizacionId.
+- logoPrincipal.
+- logoCompacto.
+- favicon.
+- colorPrimario.
+- colorSecundario.
+- colorAcento.
+- colorFondo.
+- colorTextoPrincipal.
+- colorTextoSecundario.
+- nombreSistema.
+- eslogan.
+- firmaCorreo.
+- activo.
+- actualizadoPor.
+- updatedAt.
+
+Reglas SaaS:
+
+- La identidad visual de una organización no afecta a otra.
+- El tema debe cargarse según organizacionId.
+- Los correos deben usar la identidad visual de la organización.
+- El portal cliente debe usar la identidad visual de la organización.
+- Los reportes deben usar la identidad visual de la organización.
+- Debe existir tema por defecto del sistema.
+
+------------------------------------------------------------
+17. ENTREGABLES PARA EQUIPO DE DISEÑO Y FRONTEND
+------------------------------------------------------------
+
+El equipo debe entregar:
+
+1. Guía visual del sistema.
+2. Paleta de colores basada en ContaSolutions.
+3. Diseño de layout principal.
+4. Diseño de dashboard gerencial.
+5. Diseño de panel de tareas.
+6. Diseño de ficha de empresa.
+7. Diseño de portal cliente.
+8. Diseño de configuración visual.
+9. Diseño de correos.
+10. Diseño de reportes exportados.
+11. Componentes base reutilizables.
+12. Reglas responsive.
+13. Estados visuales para tareas.
+14. Estados visuales para empresas.
+15. Estados visuales para alertas.
+16. Estados visuales para pagos.
+17. Prototipo de navegación.
+18. Checklist de accesibilidad básica.
+
+------------------------------------------------------------
+18. TECNOLOGÍAS FRONTEND RECOMENDADAS
+------------------------------------------------------------
+
+Stack sugerido:
+
+- React.
+- Vite.
+- TypeScript.
+- Tailwind CSS.
+- shadcn/ui.
+- Lucide Icons.
+- React Router.
+- TanStack Query.
+- React Hook Form.
+- Zod.
+- Recharts.
+
+Justificación:
+
+- React permite construir una interfaz modular.
+- Vite permite desarrollo rápido.
+- TypeScript mejora control de errores.
+- Tailwind facilita aplicar temas visuales.
+- shadcn/ui permite componentes modernos.
+- Lucide Icons mantiene iconografía consistente.
+- Recharts sirve para dashboards.
+- React Hook Form y Zod ayudan con formularios y validaciones.
+
+------------------------------------------------------------
+19. PROMPT PARA EL EQUIPO FRONTEND
+------------------------------------------------------------
+
+Diseñar e implementar la identidad visual del sistema usando como base la marca ContaSolutions.
+
+El sistema debe tener una apariencia moderna, profesional, limpia y fácil de usar. Usar una paleta basada en azul corporativo, dorado corporativo, blanco y grises suaves.
+
+Implementar un layout con menú lateral, barra superior, tarjetas de indicadores, tablas limpias, filtros simples, badges de estado y componentes reutilizables.
+
+El sistema debe permitir configurar la identidad visual por organización: logo principal, logo compacto, favicon, color primario, color secundario, color de acento, fondo, textos, nombre del sistema y firma de correos.
+
+Crear una pantalla de Configuración > Apariencia e identidad donde el usuario autorizado pueda cargar logo, cambiar colores y previsualizar cómo se verá el sistema antes de guardar.
+
+Aplicar reglas de seguridad: solo usuarios con permiso pueden cambiar la apariencia. Todo cambio debe quedar auditado.
+
+Diseñar pensando en SaaS: cada organización podrá tener su propia identidad visual, sin afectar a las demás organizaciones.
+
+Priorizar una experiencia sencilla para gerente, usuarios operativos y clientes. El portal cliente debe ser más simple que el panel interno y solo mostrar información autorizada.
+
+------------------------------------------------------------
+20. REGLA FINAL DE DISEÑO
+------------------------------------------------------------
+
+El sistema debe verse profesional como una herramienta empresarial, pero sentirse simple como una aplicación fácil de usar.
+
+La interfaz debe ayudar a trabajar más rápido, no complicar la operación.

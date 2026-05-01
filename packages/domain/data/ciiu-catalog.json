@@ -1,0 +1,20 @@
+[
+  {
+    "codigo": "7020",
+    "nombre": "Actividades de consultoria de gestion",
+    "seccion": "M",
+    "division": "70",
+    "grupo": "702",
+    "fuente": "CIIU Rev. 4 A.C. Colombia",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4771",
+    "nombre": "Comercio al por menor de prendas de vestir y sus accesorios en establecimientos especializados",
+    "seccion": "G",
+    "division": "47",
+    "grupo": "477",
+    "fuente": "CIIU Rev. 4 A.C. Colombia",
+    "estado": "activo"
+  }
+]
