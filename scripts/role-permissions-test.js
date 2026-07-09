@@ -1,31 +1,13 @@
+import { TEST_FALLBACKS, TEST_USERS } from "./test-credentials.js";
+
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:4000";
 
 const USERS = {
-  owner: {
-    label: "Owner / Valeria Andrade",
-    email: "valeria.andrade@contasolutions.test",
-    password: "ContaAdmin2026!"
-  },
-  senior: {
-    label: "Senior / Mateo Salazar",
-    email: "mateo.salazar@contasolutions.test",
-    password: "ContaFiscal2026!"
-  },
-  juniorPaula: {
-    label: "Junior / Paula Rojas",
-    email: "paula.rojas@contasolutions.test",
-    password: "ContaOps2026!"
-  },
-  juniorSara: {
-    label: "Junior / Sara Lopez",
-    email: "sara.lopez@contasolutions.test",
-    password: "ContaJunior2026!"
-  },
-  apprentice: {
-    label: "Apprentice / Camila Torres",
-    email: "camila.torres@contasolutions.test",
-    password: "ContaAprendiz2026!"
-  }
+  owner: TEST_USERS.owner,
+  senior: TEST_USERS.senior,
+  juniorPaula: TEST_USERS.juniorAlpha,
+  juniorSara: TEST_USERS.juniorBeta,
+  apprentice: TEST_USERS.apprentice
 };
 
 function log(message) {
@@ -144,14 +126,14 @@ async function main() {
 
   assert(mateo && paula && sara && camila, "Owner users", "faltan usuarios demo esperados.");
 
-  const tempUserEmail = "temporal.roles@contasolutions.test";
+  const tempUserEmail = TEST_FALLBACKS.tempUserEmail;
   const tempUser = await postJson("Owner create user", "/api/users", {
     nombre: "Temporal",
     apellido: "Roles",
     email: tempUserEmail,
     cargo: "Analista temporal",
     estado: "activo",
-    password: "ContaTemporal2026!",
+    password: TEST_FALLBACKS.tempUserPassword,
     roles: ["junior_accountant"],
     empresasAsignadas: [companyId],
     supervisorId: mateo.id,
@@ -239,10 +221,10 @@ async function main() {
     body: {
       nombre: "No",
       apellido: "Autorizado",
-      email: "senior.denied@contasolutions.test",
+      email: TEST_FALLBACKS.deniedUserEmail,
       cargo: "No autorizado",
       estado: "activo",
-      password: "ContaDenied2026!",
+      password: TEST_FALLBACKS.deniedUserPassword,
       roles: ["junior_accountant"]
     }
   }), 403);

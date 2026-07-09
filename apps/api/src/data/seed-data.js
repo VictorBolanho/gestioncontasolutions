@@ -1,5 +1,17 @@
+import crypto from "node:crypto";
 import { COMPANY_STATUS, DEFAULT_THEME } from "../../../../packages/domain/index.js";
 import { defaultInferredTaxRules } from "./inferred-tax-matrix.js";
+
+const DEV_SEED_PASSWORD = String(process.env.DEV_SEED_PASSWORD || "dev-only-local-not-for-production").trim();
+
+function buildSeedCredentials(seedKey) {
+  const passwordSalt = crypto.createHash("sha256").update(`seed-salt:${seedKey}`).digest("hex").slice(0, 16);
+  const passwordHash = crypto.createHash("sha256").update(`${passwordSalt}:${DEV_SEED_PASSWORD}`).digest("hex");
+  return {
+    passwordSalt,
+    passwordHash
+  };
+}
 
 export const defaultOrganization = {
   id: "org_contasolutions",
@@ -11,10 +23,10 @@ export const defaultOrganization = {
 export const defaultUsers = [
   {
     id: "usr_admin",
-    nombre: "Valeria",
-    apellido: "Andrade",
-    nombreCompleto: "Valeria Andrade",
-    email: "valeria.andrade@contasolutions.test",
+    nombre: "Demo",
+    apellido: "Owner",
+    nombreCompleto: "Demo Owner",
+    email: "owner.demo@example.test",
     cargo: "Super admin",
     estado: "activo",
     roles: ["owner"],
@@ -22,18 +34,17 @@ export const defaultUsers = [
     empresasAsignadas: [],
     supervisedUsers: ["usr_senior"],
     supervisorId: "",
-    passwordSalt: "salt_valeria_2026",
-    passwordHash: "20e24b7ad5448b6224c5055a018db50b26c37ae9ac59da8f4c1d07df175f1272",
+    ...buildSeedCredentials("usr_admin"),
     ultimoLoginAt: null,
     createdAt: "2026-05-01T09:00:00.000Z",
     updatedAt: "2026-05-01T09:00:00.000Z"
   },
   {
     id: "usr_senior",
-    nombre: "Mateo",
-    apellido: "Salazar",
-    nombreCompleto: "Mateo Salazar",
-    email: "mateo.salazar@contasolutions.test",
+    nombre: "Demo",
+    apellido: "Senior",
+    nombreCompleto: "Demo Senior",
+    email: "senior.demo@example.test",
     cargo: "Contador senior",
     estado: "activo",
     roles: ["senior_accountant"],
@@ -41,18 +52,17 @@ export const defaultUsers = [
     empresasAsignadas: ["emp_acme"],
     supervisedUsers: ["usr_junior_paula", "usr_junior_sara", "usr_apprentice_camila"],
     supervisorId: "usr_admin",
-    passwordSalt: "salt_mateo_2026",
-    passwordHash: "26cb5affacb13ef6192eaf1ecd1c3a8fd698ba5c7099fb232605b6db5307b060",
+    ...buildSeedCredentials("usr_senior"),
     ultimoLoginAt: null,
     createdAt: "2026-05-01T09:05:00.000Z",
     updatedAt: "2026-05-01T09:05:00.000Z"
   },
   {
     id: "usr_junior_paula",
-    nombre: "Paula",
-    apellido: "Rojas",
-    nombreCompleto: "Paula Rojas",
-    email: "paula.rojas@contasolutions.test",
+    nombre: "Demo",
+    apellido: "Junior Alpha",
+    nombreCompleto: "Demo Junior Alpha",
+    email: "junior.alpha@example.test",
     cargo: "Contadora junior",
     estado: "activo",
     roles: ["junior_accountant"],
@@ -60,18 +70,17 @@ export const defaultUsers = [
     empresasAsignadas: ["emp_acme"],
     supervisedUsers: [],
     supervisorId: "usr_senior",
-    passwordSalt: "salt_paula_2026",
-    passwordHash: "021bf4dc02208583d47cb6a3c8f0109c5bcf86ed4079153ffc854d8dd5b8b6c2",
+    ...buildSeedCredentials("usr_junior_paula"),
     ultimoLoginAt: null,
     createdAt: "2026-05-01T09:10:00.000Z",
     updatedAt: "2026-05-01T09:10:00.000Z"
   },
   {
     id: "usr_junior_sara",
-    nombre: "Sara",
-    apellido: "Lopez",
-    nombreCompleto: "Sara Lopez",
-    email: "sara.lopez@contasolutions.test",
+    nombre: "Demo",
+    apellido: "Junior Beta",
+    nombreCompleto: "Demo Junior Beta",
+    email: "junior.beta@example.test",
     cargo: "Contadora junior",
     estado: "activo",
     roles: ["junior_accountant"],
@@ -79,18 +88,17 @@ export const defaultUsers = [
     empresasAsignadas: ["emp_acme"],
     supervisedUsers: [],
     supervisorId: "usr_senior",
-    passwordSalt: "salt_sara_2026",
-    passwordHash: "e551be467f715acc37c6bfb203504c7eac51e261da9903653ad66260feec8a43",
+    ...buildSeedCredentials("usr_junior_sara"),
     ultimoLoginAt: null,
     createdAt: "2026-05-01T09:15:00.000Z",
     updatedAt: "2026-05-01T09:15:00.000Z"
   },
   {
     id: "usr_apprentice_camila",
-    nombre: "Camila",
-    apellido: "Torres",
-    nombreCompleto: "Camila Torres",
-    email: "camila.torres@contasolutions.test",
+    nombre: "Demo",
+    apellido: "Apprentice",
+    nombreCompleto: "Demo Apprentice",
+    email: "apprentice.demo@example.test",
     cargo: "Aprendiz contable",
     estado: "activo",
     roles: ["apprentice"],
@@ -98,8 +106,7 @@ export const defaultUsers = [
     empresasAsignadas: [],
     supervisedUsers: [],
     supervisorId: "usr_senior",
-    passwordSalt: "salt_camila_2026",
-    passwordHash: "3f0827d91c2fd224df73593b12f0fca8c845bbba7a1f0df5de9030f10dbc3883",
+    ...buildSeedCredentials("usr_apprentice_camila"),
     ultimoLoginAt: null,
     createdAt: "2026-05-01T09:20:00.000Z",
     updatedAt: "2026-05-01T09:20:00.000Z"

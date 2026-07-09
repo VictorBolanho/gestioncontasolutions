@@ -205,38 +205,6 @@ body {
   margin: 0 0 16px;
 }
 
-.auth-demo-list {
-  display: grid;
-  gap: 12px;
-}
-
-.auth-demo-item {
-  display: grid;
-  gap: 6px;
-  padding: 16px 18px;
-  border-radius: 18px;
-  border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.92);
-}
-
-.auth-demo-role {
-  color: var(--color-primary);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.auth-demo-value,
-.auth-demo-secret {
-  font-size: 1rem;
-  line-height: 1.45;
-}
-
-.auth-demo-secret {
-  color: var(--color-text-muted);
-}
-
 .auth-security-note {
   margin-top: 18px;
   padding: 16px 18px;

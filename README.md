@@ -148,6 +148,24 @@ O con script:
 npm run start:web
 ```
 
+## Credenciales de desarrollo y prueba
+
+- Las semillas locales usan `DEV_SEED_PASSWORD` para generar `passwordSalt` y `passwordHash` en tiempo de carga.
+- Si `DEV_SEED_PASSWORD` no existe, el proyecto usa el valor local `dev-only-local-not-for-production`.
+- Los scripts de prueba aceptan estas variables opcionales:
+  - `TEST_ADMIN_EMAIL`
+  - `TEST_ADMIN_PASSWORD`
+  - `TEST_FISCAL_EMAIL`
+  - `TEST_FISCAL_PASSWORD`
+  - `TEST_JUNIOR_EMAIL`
+  - `TEST_JUNIOR_PASSWORD`
+  - `TEST_JUNIOR_BETA_EMAIL`
+  - `TEST_JUNIOR_BETA_PASSWORD`
+  - `TEST_APPRENTICE_EMAIL`
+  - `TEST_APPRENTICE_PASSWORD`
+- Si esas variables no existen, los scripts usan cuentas `@example.test` y la misma clave local de desarrollo.
+- No publiques ni reutilices estos valores fuera de ambientes locales o de prueba.
+
 ## Limpieza de datos de desarrollo
 
 Reset seguro del ambiente local:

@@ -1,26 +1,12 @@
+import { TEST_USERS } from "./test-credentials.js";
+
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:4000";
 
 const USERS = {
-  owner: {
-    label: "Owner / Valeria Andrade",
-    email: "valeria.andrade@contasolutions.test",
-    password: "ContaAdmin2026!"
-  },
-  senior: {
-    label: "Senior / Mateo Salazar",
-    email: "mateo.salazar@contasolutions.test",
-    password: "ContaFiscal2026!"
-  },
-  junior: {
-    label: "Junior / Paula Rojas",
-    email: "paula.rojas@contasolutions.test",
-    password: "ContaOps2026!"
-  },
-  apprentice: {
-    label: "Apprentice / Camila Torres",
-    email: "camila.torres@contasolutions.test",
-    password: "ContaAprendiz2026!"
-  }
+  owner: TEST_USERS.owner,
+  senior: TEST_USERS.senior,
+  junior: TEST_USERS.juniorAlpha,
+  apprentice: TEST_USERS.apprentice
 };
 
 function pass(scope, message) {

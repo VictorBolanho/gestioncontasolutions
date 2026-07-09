@@ -1,9 +1,8 @@
+import { TEST_USERS } from "./test-credentials.js";
+
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:4000";
 
-const OWNER = {
-  email: "valeria.andrade@contasolutions.test",
-  password: "ContaAdmin2026!"
-};
+const OWNER = TEST_USERS.owner;
 
 function fail(message) {
   throw new Error(message);
@@ -52,12 +51,12 @@ async function main() {
   if (!login?.token) {
     fail("El login owner no devolvio token.");
   }
-  pass("Valeria inicia sesion correctamente");
+  pass("El usuario owner demo inicia sesion correctamente");
 
   const token = login.token;
   const bootstrap = await getJson("Bootstrap", "/api/bootstrap", token);
   if (bootstrap.currentUser?.email !== OWNER.email || bootstrap.currentUser?.primaryRole !== "owner") {
-    fail("El bootstrap no devolvio a Valeria como owner.");
+    fail("El bootstrap no devolvio al owner demo.");
   }
   if (!Array.isArray(bootstrap.companies) || bootstrap.companies.length !== 0) {
     fail(`Se esperaba bootstrap sin empresas y llegaron ${bootstrap.companies?.length ?? "datos invalidos"}.`);
@@ -118,14 +117,14 @@ async function main() {
   if (!Array.isArray(users.items) || users.items.length !== 1) {
     fail(`Se esperaba solo 1 usuario base y llegaron ${users.items?.length ?? "datos invalidos"}.`);
   }
-  pass("Solo queda Valeria como usuario base");
+  pass("Solo queda el owner demo como usuario base");
 
   const audits = await getJson("Auditoria", "/api/audits", token);
   if (!Array.isArray(audits.items)) {
     fail("La auditoria no devolvio un arreglo valido.");
   }
   if (!audits.items.some((item) => item.accion === "login" && item.usuarioId === login.user.id)) {
-    fail("La auditoria no registro el login de Valeria.");
+    fail("La auditoria no registro el login del owner demo.");
   }
   pass("Auditoria accesible para owner con eventos reales");
 

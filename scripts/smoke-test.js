@@ -1,10 +1,9 @@
+import { TEST_USERS } from "./test-credentials.js";
+
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:4000";
 const WEB_BASE_URL = process.env.WEB_BASE_URL || "http://localhost:3000";
 
-const DEMO_USER = {
-  email: "valeria.andrade@contasolutions.test",
-  password: "ContaAdmin2026!"
-};
+const DEMO_USER = TEST_USERS.owner;
 
 async function expectOk(label, response) {
   if (!response.ok) {
@@ -97,7 +96,7 @@ async function main() {
     throw new Error("La lista de usuarios no tiene datos.");
   }
   if (!users.items.some((user) => user.email === DEMO_USER.email && user.primaryRole === "owner")) {
-    throw new Error("Valeria Andrade no aparece como owner en el modulo de usuarios.");
+    throw new Error("El usuario owner demo no aparece en el modulo de usuarios.");
   }
   const isCleanOnboarding = companies.items.length === 0;
   if (!isCleanOnboarding) {

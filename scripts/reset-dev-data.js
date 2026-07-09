@@ -149,7 +149,7 @@ console.log("[reset-dev-data] organization.json se conservo con la semilla base.
 console.log("[reset-dev-data] taxes.json, tax-rules.json e inferred-tax-rules.json se conservaron como catalogos base.");
 if (cleanMode) {
   console.log("[reset-dev-data] fiscal-calendars.json, companies.json, fiscal-tasks.json y company-obligations.json quedaron vacios.");
-  console.log("[reset-dev-data] users.json conserva solo a Valeria Andrade como owner inicial.");
+  console.log("[reset-dev-data] users.json conserva solo al owner demo inicial.");
 } else {
   console.log("[reset-dev-data] fiscal-calendars.json se restauro con semillas base de prueba.");
   console.log("[reset-dev-data] users.json se restauro a usuarios semilla y sessions.json quedo vacio.");

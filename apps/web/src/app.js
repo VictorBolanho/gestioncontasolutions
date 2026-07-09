@@ -1100,29 +1100,6 @@ function renderSidebarNavigationV2() {
 }
 
 function renderAuthView() {
-  const demoUsers = [
-    {
-      role: "Super admin",
-      email: "valeria.andrade@contasolutions.test",
-      password: "ContaAdmin2026!"
-    },
-    {
-      role: "Contador senior",
-      email: "mateo.salazar@contasolutions.test",
-      password: "ContaFiscal2026!"
-    },
-    {
-      role: "Contador junior",
-      email: "paula.rojas@contasolutions.test",
-      password: "ContaOps2026!"
-    },
-    {
-      role: "Aprendiz",
-      email: "camila.torres@contasolutions.test",
-      password: "ContaAprendiz2026!"
-    }
-  ];
-
   return `
     <div class="auth-shell">
       <main class="auth-main">
@@ -1159,7 +1136,7 @@ function renderAuthView() {
             <form id="login-form" class="form-grid compact auth-form">
               <label class="full">
                 <span>Correo</span>
-                <input name="email" type="email" autocomplete="username" placeholder="usuario@contasolutions.test" required />
+                <input name="email" type="email" autocomplete="username" placeholder="usuario@example.test" required />
               </label>
               <label class="full">
                 <span>Contrasena</span>
@@ -1167,31 +1144,20 @@ function renderAuthView() {
               </label>
               <div class="auth-actions">
                 <button class="btn btn-primary auth-submit" type="submit">Entrar al sistema</button>
-                <p class="auth-help-text">Usa una de las credenciales demo para validar permisos y vistas.</p>
+                <p class="auth-help-text">Solicita credenciales de prueba al administrador del sistema.</p>
               </div>
             </form>
           </section>
           <aside class="panel-card auth-side-card">
-            <div class="eyebrow">Perfiles disponibles</div>
-            <h3 class="section-title">Credenciales de prueba</h3>
+            <div class="eyebrow">Acceso de prueba</div>
+            <h3 class="section-title">Validacion controlada</h3>
             <p class="muted auth-side-copy">
-              Cada perfil abre un alcance distinto dentro de la plataforma para revisar seguridad, roles y flujo operativo.
+              El ambiente de desarrollo conserva perfiles con alcances diferentes para validar seguridad, roles y flujo operativo
+              sin publicar contrasenas visibles en la interfaz.
             </p>
-            <div class="auth-demo-list">
-              ${demoUsers
-                .map(
-                  (item) => `
-                    <article class="auth-demo-item">
-                      <div class="auth-demo-role">${escapeHtml(item.role)}</div>
-                      <div class="auth-demo-value">${escapeHtml(item.email)}</div>
-                      <div class="auth-demo-secret">${escapeHtml(item.password)}</div>
-                    </article>
-                  `
-                )
-                .join("")}
-            </div>
             <div class="auth-security-note">
-              <strong>Nota:</strong> esta version ya aplica control de empresas asignadas y permisos por rol.
+              <strong>Nota:</strong> esta version ya aplica control de empresas asignadas, permisos por rol y
+              autenticacion sin exponer credenciales demo en pantalla.
             </div>
           </aside>
         </section>
@@ -3094,7 +3060,7 @@ function operationalCalendarSection() {
       </div>
       <div class="operations-action-strip">
         <div>
-          <div class="eyebrow">Accion masiva de Valeria</div>
+          <div class="eyebrow">Accion masiva del equipo</div>
           <strong>${escapeHtml(String(assignableTasks.length))}</strong>
           <span class="muted">tareas abiertas coinciden con los filtros actuales.</span>
         </div>
@@ -6054,7 +6020,7 @@ function dashboardSection() {
       <section class="dashboard-module dashboard-module-wide dashboard-operations-module">
         <div class="dashboard-module-header">
           <div>
-            <div class="eyebrow">Operacion Valeria</div>
+            <div class="eyebrow">Operacion del equipo</div>
             <h4 class="section-title compact">Bandeja de control diario</h4>
           </div>
           <span class="dashboard-inline-pill">${escapeHtml(String(operationCounts.abiertas || 0))} abiertas</span>
