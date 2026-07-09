@@ -44,23 +44,48 @@ Incluye:
 
 ### Fase 3 - Calendario fiscal, versionamiento y generacion de tareas fiscales
 
-Estado: siguiente fase.
+Estado: completada.
+
+Incluye:
+
+- vista separada de calendario fiscal;
+- navegacion limpia por secciones fiscales;
+- impuestos editables y utilizables por calendarios;
+- periodicidad controlada;
+- criterios DIAN por ultimo digito, DV, rangos y fechas fijas;
+- asignacion manual de impuestos a empresas;
+- calendario operativo por fechas;
+- calendarios versionados;
+- generacion preliminar de tareas fiscales;
+- control de no duplicacion;
+- auditoria de calendario y tareas.
+
+### Fase 4 - Usuarios, cargos, roles y permisos
+
+Estado: completada.
 
 Objetivo propuesto:
 
-- calendario fiscal versionado;
-- relacion calendario-empresa-obligacion;
-- generacion controlada de tareas fiscales;
-- preparacion para recordatorios y seguimiento operativo.
-
-Fase 3 todavia no esta implementada.
+- usuarios internos;
+- roles y permisos;
+- empresas asignadas;
+- seguridad operativa;
+- base para panel general de tareas.
 
 ## Fases posteriores
 
-### Fases 4 y 5
+### Fase 5
 
-- usuarios, cargos, roles y permisos;
-- gestion integral de tareas fiscales y no fiscales.
+Estado: completada.
+
+Incluye:
+
+- gestion integral de tareas fiscales y no fiscales;
+- creacion manual de tareas;
+- estados operativos transversales;
+- asignacion y reasignacion de responsables;
+- seguimiento, cierre y filtros operativos;
+- auditoria de cambios de estado, reasignaciones y cierre.
 
 ### Fases 6 y 7
 

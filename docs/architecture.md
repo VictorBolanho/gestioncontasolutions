@@ -2,7 +2,7 @@
 
 ## Resumen
 
-GestorConta esta organizado como una solucion modular con separacion explicita entre API, frontend y dominio compartido. La implementacion actual cubre Fase 0, Fase 1 y Fase 2.
+GestorConta esta organizado como una solucion modular con separacion explicita entre API, frontend y dominio compartido. La implementacion actual cubre Fase 0, Fase 1, Fase 2 y Fase 3.
 
 ## Capas del sistema
 
@@ -17,6 +17,9 @@ Servidor HTTP en Node nativo responsable de:
 - aprobar revision de empresa;
 - analizar obligaciones fiscales;
 - actualizar estados de obligaciones;
+- administrar impuestos;
+- administrar calendarios fiscales;
+- generar tareas fiscales preliminares;
 - registrar auditoria.
 
 ### `apps/web`
@@ -28,6 +31,10 @@ Frontend web con servidor estatico responsable de:
 - listar empresas;
 - mostrar detalle de empresa;
 - mostrar obligaciones sugeridas;
+- mostrar tareas fiscales generadas en detalle de empresa;
+- separar la vista `Calendario fiscal` del flujo `Empresas desde RUT`;
+- crear y editar impuestos;
+- crear y activar calendarios fiscales;
 - ejecutar acciones de aprobacion y actualizacion de obligaciones;
 - aplicar la identidad visual ContaSolutions.
 
@@ -40,6 +47,7 @@ Dominio compartido entre backend y frontend. Centraliza:
 - helpers de validacion;
 - perfil tributario efectivo;
 - catalogo CIIU;
+- catalogos y estados fiscales;
 - tema visual por defecto;
 - utilidades de auditoria.
 
@@ -57,6 +65,9 @@ Archivos principales:
 - `taxes.json`
 - `tax-rules.json`
 - `company-obligations.json`
+- `fiscal-calendars.json`
+- `fiscal-calendar-versions.json`
+- `fiscal-tasks.json`
 
 Tambien existe almacenamiento local de PDFs en:
 
@@ -109,8 +120,9 @@ Reglas actuales:
 - la empresa creada desde RUT inicia en `pendiente_revision`, salvo decision manual distinta;
 - una empresa debe ser aprobada y activada antes de confirmar obligaciones;
 - la aprobacion de revision activa banderas operativas y deja la empresa lista para calendario en Fase 3.
+- empresas no activas no generan tareas fiscales.
 
-## Relacion entre empresa, RUT, obligaciones y auditoria
+## Relacion entre empresa, RUT, obligaciones, calendario y auditoria
 
 ### Empresa
 
@@ -145,6 +157,59 @@ Contiene:
 - ubicacion aplicable;
 - confirmacion o revision humana.
 
+### Calendario fiscal
+
+Entidad versionable que define:
+
+- impuesto;
+- periodicidad real del periodo;
+- criterio de vencimiento;
+- filtros por NIT, DV, regimen, tipo de contribuyente o ubicacion;
+- fecha de vencimiento;
+- version y estado.
+
+Regla central:
+
+- el impuesto no guarda fechas;
+- las fechas viven en el calendario fiscal.
+
+### Impuesto
+
+Concepto tributario estable. Se administra como catalogo editable y puede existir aun cuando no venga directamente del RUT.
+
+### Obligacion fiscal empresa
+
+Relacion entre empresa e impuesto. Puede venir del motor de reglas del RUT o de una asignacion manual de usuario.
+
+Campos operativos clave:
+
+- `periodicidadAplicable`
+- `municipioAplicacion`
+- `departamentoAplicacion`
+- `fuenteDeteccion`
+- `estado`
+
+Regla:
+
+- la periodicidad del impuesto es sugerida;
+- la periodicidad de la obligacion de empresa es la que manda para buscar calendario aplicable.
+
+### Tarea fiscal preliminar
+
+Entidad generada desde:
+
+`Impuesto -> ObligacionFiscalEmpresa -> CalendarioFiscal -> TareaFiscal`
+
+Contiene:
+
+- empresa;
+- obligacion fiscal origen;
+- calendario aplicado;
+- fecha de vencimiento;
+- fecha limite interna;
+- version de calendario usada;
+- estados base para evolucionar en Fase 5.
+
 ### Auditoria
 
 Se registran eventos relevantes como:
@@ -156,7 +221,10 @@ Se registran eventos relevantes como:
 - creacion de obligacion sugerida;
 - confirmacion de obligacion;
 - obligacion no aplica;
-- obligacion en revision.
+- obligacion en revision;
+- creacion y activacion de calendario fiscal;
+- reemplazo o anulacion de calendario;
+- generacion u omision de tareas fiscales.
 
 ## Preparacion futura para base de datos real
 
@@ -175,6 +243,19 @@ Esto permite reemplazar la persistencia local por:
 - autenticacion/autorizacion real;
 
 sin rehacer la logica central.
+
+La preparacion actual tambien deja lista una futura importacion de calendarios desde DIAN, municipios o archivos Excel/CSV/JSON, sin cambiar el modelo principal.
+
+## Vista fiscal actual
+
+El frontend separa el modulo fiscal del flujo RUT y lo organiza en cuatro secciones:
+
+- Catalogo de impuestos
+- Calendario fiscal versionado
+- Asignacion de impuestos a empresas
+- Calendario operativo
+
+Esto evita mezclar formularios de empresa con configuracion de calendario y deja lista la evolucion de Fase 4 en adelante.
 
 ## Preparacion futura para SaaS
 

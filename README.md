@@ -4,8 +4,8 @@ Sistema operativo, contable y tributario para la gestion de empresas cliente, co
 
 Los documentos funcionales y visuales base del proyecto son:
 
-- `fases del desarrollo.txt`
-- `plan visual corporativo.txt`
+- `docs/planning/fases-del-desarrollo.txt`
+- `docs/planning/plan-visual-corporativo.txt`
 
 ## Estado actual del proyecto
 
@@ -58,6 +58,62 @@ Incluye:
 - no duplicacion de obligaciones;
 - auditoria.
 
+### Fase 3 - Calendario fiscal, versionamiento y tareas fiscales preliminares
+
+Estado: completada.
+
+Incluye:
+
+- vista separada de `Calendario fiscal`;
+- navegacion interna por secciones:
+  - catalogo de impuestos
+  - calendario fiscal versionado
+  - asignacion de impuestos a empresas
+  - calendario operativo
+- catalogo base de impuestos editable;
+- creacion y edicion manual de impuestos;
+- periodicidad controlada por lista;
+- calendarios fiscales versionados;
+- soporte para `municipioCiudad` con compatibilidad hacia `municipio`;
+- criterios de vencimiento por NIT, DV, rangos o fecha fija;
+- asignacion manual de impuestos a empresas;
+- periodicidad aplicable por obligacion de empresa;
+- activacion y anulacion de calendarios;
+- generacion preliminar de tareas fiscales;
+- calendario operativo por fechas;
+- no duplicacion de tareas;
+- auditoria de calendario y tareas fiscales.
+
+### Fase 4 - Usuarios, cargos, roles, permisos y seguridad operativa
+
+Estado: completada.
+
+Incluye:
+
+- inicio de sesion con token;
+- usuarios persistidos en JSON;
+- roles base y permisos efectivos por rol;
+- acceso filtrado por empresas asignadas;
+- proteccion de endpoints por autenticacion y permisos;
+- trazabilidad de acciones con usuario real;
+- vista inicial de administracion de usuarios;
+- cierre de sesion y contexto de usuario en frontend.
+
+### Fase 5 - Gestion integral de tareas fiscales y no fiscales
+
+Estado: completada.
+
+Incluye:
+
+- panel general de tareas fiscales y no fiscales;
+- creacion manual de tareas no fiscales;
+- estados operativos transversales;
+- asignacion y reasignacion de responsables;
+- cierre de tareas como presentadas o completadas;
+- vencimiento automatico de tareas abiertas vencidas;
+- filtros por estado, empresa, responsable, vencimiento y tipo;
+- auditoria de generacion, creacion, reasignacion, cambio de estado y cierre.
+
 ## Estructura
 
 - `apps/api`: servidor API HTTP en Node nativo.
@@ -106,6 +162,18 @@ O con script:
 npm run reset:dev-data
 ```
 
+Reset solo de la parte fiscal, conservando empresas ya cargadas:
+
+```powershell
+node scripts/reset-fiscal-data.js --confirm
+```
+
+O con script:
+
+```powershell
+npm run reset:fiscal-data
+```
+
 Reglas del reset:
 
 - no se ejecuta automaticamente;
@@ -115,9 +183,30 @@ Reglas del reset:
 - conserva `organization.json`;
 - conserva `taxes.json`, `tax-rules.json` y el catalogo CIIU.
 
+Reglas del reset fiscal:
+
+- no se ejecuta automaticamente;
+- requiere `--confirm`;
+- se bloquea si `NODE_ENV=production`;
+- conserva empresas, documentos RUT, extracciones y `organization.json`;
+- restaura `taxes.json` y `tax-rules.json` al catalogo base;
+- limpia `company-obligations.json`;
+- limpia `fiscal-calendar-versions.json`;
+- limpia `fiscal-tasks.json`;
+- limpia auditorias del modulo fiscal;
+- por defecto deja `fiscal-calendars.json` vacio;
+- si quieres dejar calendarios semilla base, puedes usar:
+
+```powershell
+node scripts/reset-fiscal-data.js --confirm --keep-calendar-seeds
+```
+
 ## Endpoints principales disponibles
 
 - `GET /health`
+- `POST /api/auth/login`
+- `GET /api/auth/session`
+- `POST /api/auth/logout`
 - `GET /api/bootstrap`
 - `POST /api/rut-uploads`
 - `GET /api/rut-uploads/:id`
@@ -131,7 +220,29 @@ Reglas del reset:
 - `PATCH /api/company-obligations/:id/not-applicable`
 - `PATCH /api/company-obligations/:id/review`
 - `GET /api/taxes`
+- `POST /api/taxes`
+- `PATCH /api/taxes/:id`
 - `GET /api/tax-rules`
+- `GET /api/fiscal-calendars`
+- `POST /api/fiscal-calendars`
+- `GET /api/fiscal-calendars/:id`
+- `PATCH /api/fiscal-calendars/:id`
+- `PATCH /api/fiscal-calendars/:id/activate`
+- `PATCH /api/fiscal-calendars/:id/cancel`
+- `POST /api/fiscal-calendars/:id/replace`
+- `POST /api/fiscal-calendars/generate-tasks`
+- `GET /api/fiscal-tasks`
+- `GET /api/fiscal-tasks/:id`
+- `GET /api/companies/:id/fiscal-tasks`
+- `GET /api/tasks`
+- `POST /api/tasks`
+- `PATCH /api/tasks/:id/status`
+- `PATCH /api/tasks/:id/assign`
+- `PATCH /api/tasks/:id/close`
+- `GET /api/task-responsibles`
+- `GET /api/users`
+- `POST /api/users`
+- `PATCH /api/users/:id`
 
 ## Flujo probado actual
 
@@ -143,6 +254,14 @@ Reglas del reset:
 6. Analizar obligaciones.
 7. Confirmar obligacion, marcar no aplica o dejar en revision.
 8. Verificar que no se dupliquen obligaciones.
+9. Ir a `Calendario fiscal`.
+10. Crear o editar impuestos si es necesario.
+11. Crear y activar calendarios fiscales.
+12. Generar tareas fiscales preliminares.
+13. Crear tareas no fiscales manuales si aplica.
+14. Asignar responsable, iniciar, cerrar o cancelar tareas.
+15. Iniciar sesion segun rol y validar acceso.
+16. Verificar que no se dupliquen tareas.
 
 ## Reglas importantes
 
@@ -150,25 +269,33 @@ Reglas del reset:
 - `datosExtraidosOriginales` se conservan para auditoria y comparacion.
 - `datosConfirmadosPorUsuario` son la fuente operativa prioritaria.
 - Empresas `suspendida`, `inactiva` o `archivada` no generan nuevas obligaciones.
+- Empresas `suspendida`, `inactiva` o `archivada` no generan tareas fiscales.
 - Para confirmar una obligacion, la empresa debe estar `activa`.
 - Marcar `no_aplica` o `pendiente_revision` en obligaciones se permite en empresa activa o en revision.
+- El calendario fiscal vive en un modulo separado del flujo de RUT.
+- El impuesto es el concepto base; el calendario define la fecha y criterio de vencimiento.
+- El impuesto es un concepto estable; el calendario cambia por anio, periodo y version.
+- La obligacion fiscal de empresa conecta empresa e impuesto.
+- La generacion de tareas usa el calendario realmente aplicable, no cualquier calendario del mismo impuesto.
+- Cambiar un calendario de un anio no modifica historicos ni tareas ya generadas de anios anteriores.
 - No se elimina historico funcional.
+- Toda ruta `/api` excepto login, meta y health requiere sesion.
+- Los usuarios sin `ver_todas_empresas` solo ven empresas asignadas.
+- La gestion de usuarios exige permisos de administracion.
 
 ## Limitaciones actuales
 
 - Persistencia local en JSON, no base de datos real.
 - Catalogo CIIU inicial, no completo.
 - Extraccion RUT basada en texto PDF, no OCR completo.
-- No existe calendario fiscal todavia.
-- No existen tareas fiscales todavia.
+- Catalogo de impuestos editable, pero aun sin importacion masiva.
+- Calendario fiscal manual y semilla base; sin importacion DIAN/municipal automatizada.
 - No existe dashboard real todavia.
-- No existe autenticacion real todavia.
 - No existe portal cliente todavia.
+- La persistencia de usuarios y sesiones sigue siendo local en JSON.
 
 ## Que queda pendiente
 
 Siguiente fase recomendada:
 
-- Fase 3: calendario fiscal, versionamiento y generacion de tareas fiscales.
-
-Fase 3 todavia no esta implementada.
+- Fase 6: alertas internas y vencimientos proximos.
