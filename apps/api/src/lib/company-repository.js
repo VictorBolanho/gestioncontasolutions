@@ -2,9 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   COMPANY_STATUS,
+  canAccessCompany,
+  canViewSensitiveCompanyData,
   canGenerateOperationalFlow,
   companyIdentityKey,
   createAuditEntry,
+  hasPermission,
   isDuplicateCompanyIdentity,
   validateCompanyDraft
 } from "../../../../packages/domain/index.js";
@@ -20,8 +23,11 @@ import {
   saveDocuments,
   saveExtractions
 } from "./storage.js";
+import { filterCompaniesForUser, sanitizeUser } from "./auth-service.js";
 import { listCompanyObligations } from "./obligations-service.js";
+import { listCompanyFiscalTasks } from "./fiscal-calendar-service.js";
 import { extractRutDataFromPdf } from "./rut-extraction.js";
+import { listCompanyTasks } from "./task-service.js";
 
 function createId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -142,24 +148,124 @@ function normalizeConfirmedData(payload) {
 }
 
 function companyView(company) {
+  const responsibilities = Array.isArray(company?.responsabilidadesTributarias) ? company.responsabilidadesTributarias : [];
+  const responsibilityCodes = new Set(
+    responsibilities.map((item) => String(item?.codigo || "").trim()).filter(Boolean)
+  );
+  const isJuridica = String(company?.tipoPersona || "").toLowerCase().includes("juridica");
+  const cumplimientoDian = {
+    requiereActualizacionRut: true,
+    requiereFacturacionElectronica:
+      Boolean(company?.obligadoFacturar) || responsibilityCodes.has("16") || responsibilityCodes.has("52"),
+    requiereInformacionExogena: Boolean(company?.informanteExogena) || responsibilityCodes.has("14"),
+    requiereDocumentoSoporteNoObligados:
+      Boolean(company?.obligadoFacturar) || responsibilityCodes.has("16") || responsibilityCodes.has("52"),
+    requiereNominaElectronica: isJuridica && Boolean(company?.obligadoLlevarContabilidad),
+    requiereFirmaElectronica:
+      Boolean(company?.obligadoFacturar) ||
+      Boolean(company?.informanteExogena) ||
+      responsibilityCodes.has("14") ||
+      responsibilityCodes.has("16") ||
+      responsibilityCodes.has("52")
+  };
+
   return {
     ...company,
-    puedeOperar: canGenerateOperationalFlow(company)
+    puedeOperar: canGenerateOperationalFlow(company),
+    cumplimientoDian
   };
 }
 
-export function buildBootstrap() {
+function shouldExposeContactData(user) {
+  return hasPermission(user, "ver_contacto_empresa") || canViewSensitiveCompanyData(user);
+}
+
+function shouldExposeRutDocument(user) {
+  return [
+    "descargar_rut",
+    "ver_extraccion_rut",
+    "cargar_rut_pdf",
+    "confirmar_empresa_rut"
+  ].some((permission) => hasPermission(user, permission));
+}
+
+function filterClientVisibleTasks(tasks = [], user) {
+  return tasks.filter(
+    (task) =>
+      task?.visibleParaCliente === true &&
+      (!task?.clienteUsuarioId || task.clienteUsuarioId === user?.id)
+  );
+}
+
+function redactCompanyForUser(company, user, options = {}) {
+  if (!company) {
+    return null;
+  }
+
+  const { includeRelated = false } = options;
+  const canSeeSensitive = canViewSensitiveCompanyData(user);
+  const canSeeContact = shouldExposeContactData(user);
+  const canSeeRutDocument = shouldExposeRutDocument(user);
+  const isClient = user?.primaryRole === "cliente" || user?.roles?.includes("cliente");
+  const base = clone(company);
+
+  if (!canSeeContact) {
+    base.direccionPrincipal = "";
+    base.correoElectronico = "";
+    base.email = "";
+    base.telefono1 = "";
+    base.telefono2 = "";
+    base.codigoPostal = "";
+  }
+
+  if (!canSeeSensitive) {
+    base.datosExtraidosOriginales = null;
+    base.datosConfirmadosPorUsuario = null;
+    base.metadataExtraccion = null;
+    base.buzonElectronico = "";
+    base.direccionSeccional = "";
+  }
+
+  if (includeRelated) {
+    if (!canSeeRutDocument) {
+      base.documentoRut = null;
+    } else if (base.documentoRut) {
+      base.documentoRut = {
+        ...base.documentoRut,
+        rutaArchivo: canSeeSensitive ? base.documentoRut.rutaArchivo : ""
+      };
+    }
+
+    if (isClient) {
+      base.tareasFiscales = filterClientVisibleTasks(base.tareasFiscales || [], user);
+      base.tareasCumplimientoDian = filterClientVisibleTasks(base.tareasCumplimientoDian || [], user);
+    }
+  }
+
+  return base;
+}
+
+export function buildBootstrap(currentUser = null) {
   const organization = getOrganization();
-  const companies = getCompanies().map(companyView);
+  const companies = filterCompaniesForUser(getCompanies().map(companyView), currentUser)
+    .filter((company) => canAccessCompany(currentUser, company.id))
+    .map((company) => redactCompanyForUser(company, currentUser));
 
   return {
     organization,
-    companies
+    companies,
+    currentUser: sanitizeUser(currentUser)
   };
 }
 
 export function listCompanies() {
   return getCompanies().map(companyView).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export function listCompaniesForUser(user) {
+  return listCompanies()
+    .filter((company) => canAccessCompany(user, company.id))
+    .map((company) => redactCompanyForUser(company, user));
 }
 
 export function getCompanyDetail(companyId) {
@@ -174,8 +280,15 @@ export function getCompanyDetail(companyId) {
   return {
     ...companyView(company),
     documentoRut: documents.find((item) => item.id === company.documentoRutId) || null,
-    obligacionesFiscales: listCompanyObligations(company.id)
+    obligacionesFiscales: listCompanyObligations(company.id),
+    tareasFiscales: listCompanyFiscalTasks(company.id),
+    tareasCumplimientoDian: listCompanyTasks(company.id).filter((task) => task.tipoTarea === "cumplimiento_dian")
   };
+}
+
+export function getCompanyDetailForUser(companyId, user) {
+  const company = getCompanyDetail(companyId);
+  return redactCompanyForUser(company, user, { includeRelated: true });
 }
 
 function getMissingActivationFields(company, document) {
@@ -202,6 +315,66 @@ function getMissingActivationFields(company, document) {
   }
 
   return missing;
+}
+
+function findCompanyByIdentity(companies, candidate) {
+  const identityKey = companyIdentityKey(candidate);
+  return companies.find((company) => companyIdentityKey(company) === identityKey) || null;
+}
+
+function applyConfirmedDataToCompany(company, confirmedData, actor, now, extraction) {
+  const representative = normalizeRepresentative(confirmedData.representanteLegalPrincipal);
+
+  company.nit = confirmedData.nit;
+  company.dv = confirmedData.dv;
+  company.razonSocial = confirmedData.razonSocial;
+  company.nombreComercial = confirmedData.nombreComercial;
+  company.sigla = confirmedData.sigla;
+  company.numeroFormulario = confirmedData.numeroFormulario;
+  company.concepto = confirmedData.concepto;
+  company.direccionSeccional = confirmedData.direccionSeccional;
+  company.buzonElectronico = confirmedData.buzonElectronico;
+  company.tipoContribuyente = confirmedData.tipoContribuyente;
+  company.tipoPersona = confirmedData.tipoPersona;
+  company.tipoDocumento = confirmedData.tipoDocumento;
+  company.numeroIdentificacion = confirmedData.numeroIdentificacion;
+  company.regimenTributario = confirmedData.regimenTributario;
+  company.regimenTributarioFuente = confirmedData.regimenTributarioFuente;
+  company.requiereRevisionRegimen = confirmedData.requiereRevisionRegimen;
+  company.pais = confirmedData.pais;
+  company.departamento = confirmedData.departamento;
+  company.municipio = confirmedData.municipio;
+  company.direccionPrincipal = confirmedData.direccionPrincipal;
+  company.correoElectronico = confirmedData.correoElectronico;
+  company.email = confirmedData.email;
+  company.codigoPostal = confirmedData.codigoPostal;
+  company.telefono1 = confirmedData.telefono1;
+  company.telefono2 = confirmedData.telefono2;
+  company.actividadEconomicaPrincipal = confirmedData.actividadEconomicaPrincipal;
+  company.actividadEconomicaPrincipalCodigo = confirmedData.actividadEconomicaPrincipalCodigo;
+  company.actividadEconomicaPrincipalNombre = confirmedData.actividadEconomicaPrincipalNombre;
+  company.actividadEconomicaPrincipalFuente = confirmedData.actividadEconomicaPrincipalFuente;
+  company.fechaInicioActividadPrincipal = confirmedData.fechaInicioActividadPrincipal || null;
+  company.actividadEconomicaSecundaria = confirmedData.actividadEconomicaSecundaria;
+  company.fechaInicioActividadSecundaria = confirmedData.fechaInicioActividadSecundaria || null;
+  company.otrasActividades = confirmedData.otrasActividades;
+  company.numeroEstablecimientos = confirmedData.numeroEstablecimientos;
+  company.responsabilidadesTributarias = confirmedData.responsabilidadesTributarias;
+  company.responsableIva = confirmedData.responsableIva;
+  company.obligadoLlevarContabilidad = confirmedData.obligadoLlevarContabilidad;
+  company.obligadoFacturar = confirmedData.obligadoFacturar;
+  company.informanteExogena = confirmedData.informanteExogena;
+  company.agenteRetencionFuente = confirmedData.agenteRetencionFuente;
+  company.informanteBeneficiariosFinales = confirmedData.informanteBeneficiariosFinales;
+  company.representanteLegalPrincipal = representative;
+  company.representanteLegal = representative.nombreCompleto;
+  company.fechaGeneracionRut = confirmedData.fechaGeneracionRut || null;
+  company.updatedAt = now;
+  company.cambiadoPor = actor;
+  company.identidadKey = companyIdentityKey(confirmedData);
+  company.datosExtraidosOriginales = clone(extraction.datosExtraidosOriginales || extraction.datosExtraidos || {});
+  company.datosConfirmadosPorUsuario = clone(confirmedData);
+  company.metadataExtraccion = clone(extraction.metadataExtraccion || {});
 }
 
 export function getExtraction(extractionId) {
@@ -318,10 +491,6 @@ export function confirmExtractionAndCreateCompany(extractionId, payload, actor =
     throw new Error("Esta extraccion ya fue confirmada.");
   }
 
-  if (!String(payload.estadoEmpresa || "").trim()) {
-    throw new Error("El estado inicial de la empresa es obligatorio.");
-  }
-
   if (!extraction.documentoId) {
     throw new Error("La extraccion no tiene un documento RUT asociado.");
   }
@@ -331,117 +500,175 @@ export function confirmExtractionAndCreateCompany(extractionId, payload, actor =
   if (!validation.valid) {
     throw new Error(validation.errors.join(" "));
   }
-
-  if (isDuplicateCompanyIdentity(companies, confirmedData)) {
-    throw new Error("Ya existe una empresa con el mismo NIT y DV.");
-  }
+  const requestedMode = String(payload.rutFlowMode || "create").trim().toLowerCase();
+  const shouldUpdateExisting = requestedMode === "update";
+  const requestedCompanyId = String(payload.existingCompanyId || "").trim();
+  const matchingCompany = findCompanyByIdentity(companies, confirmedData);
 
   const now = new Date().toISOString();
-  const companyId = createId("emp");
   const document = documents.find((item) => item.id === extraction.documentoId);
-  const representative = normalizeRepresentative(confirmedData.representanteLegalPrincipal);
-  const estadoEmpresa = payload.estadoEmpresa || COMPANY_STATUS.PENDING_REVIEW;
+  let company = null;
 
-  const company = {
-    id: companyId,
-    nit: confirmedData.nit,
-    dv: confirmedData.dv,
-    razonSocial: confirmedData.razonSocial,
-    nombreComercial: confirmedData.nombreComercial,
-    sigla: confirmedData.sigla,
-    numeroFormulario: confirmedData.numeroFormulario,
-    concepto: confirmedData.concepto,
-    direccionSeccional: confirmedData.direccionSeccional,
-    buzonElectronico: confirmedData.buzonElectronico,
-    tipoContribuyente: confirmedData.tipoContribuyente,
-    tipoPersona: confirmedData.tipoPersona,
-    tipoDocumento: confirmedData.tipoDocumento,
-    numeroIdentificacion: confirmedData.numeroIdentificacion,
-    regimenTributario: confirmedData.regimenTributario,
-    regimenTributarioFuente: confirmedData.regimenTributarioFuente,
-    requiereRevisionRegimen: confirmedData.requiereRevisionRegimen,
-    pais: confirmedData.pais,
-    departamento: confirmedData.departamento,
-    municipio: confirmedData.municipio,
-    direccionPrincipal: confirmedData.direccionPrincipal,
-    correoElectronico: confirmedData.correoElectronico,
-    email: confirmedData.email,
-    codigoPostal: confirmedData.codigoPostal,
-    telefono1: confirmedData.telefono1,
-    telefono2: confirmedData.telefono2,
-    actividadEconomicaPrincipal: confirmedData.actividadEconomicaPrincipal,
-    actividadEconomicaPrincipalCodigo: confirmedData.actividadEconomicaPrincipalCodigo,
-    actividadEconomicaPrincipalNombre: confirmedData.actividadEconomicaPrincipalNombre,
-    actividadEconomicaPrincipalFuente: confirmedData.actividadEconomicaPrincipalFuente,
-    fechaInicioActividadPrincipal: confirmedData.fechaInicioActividadPrincipal || null,
-    actividadEconomicaSecundaria: confirmedData.actividadEconomicaSecundaria,
-    fechaInicioActividadSecundaria: confirmedData.fechaInicioActividadSecundaria || null,
-    otrasActividades: confirmedData.otrasActividades,
-    numeroEstablecimientos: confirmedData.numeroEstablecimientos,
-    responsabilidadesTributarias: confirmedData.responsabilidadesTributarias,
-    responsableIva: confirmedData.responsableIva,
-    obligadoLlevarContabilidad: confirmedData.obligadoLlevarContabilidad,
-    obligadoFacturar: confirmedData.obligadoFacturar,
-    informanteExogena: confirmedData.informanteExogena,
-    agenteRetencionFuente: confirmedData.agenteRetencionFuente,
-    informanteBeneficiariosFinales: confirmedData.informanteBeneficiariosFinales,
-    representanteLegalPrincipal: representative,
-    representanteLegal: representative.nombreCompleto,
-    fechaInscripcionRut: payload.fechaInscripcionRut || null,
-    fechaGeneracionRut: confirmedData.fechaGeneracionRut || null,
-    estadoEmpresa,
-    fechaActivacion: estadoEmpresa === COMPANY_STATUS.ACTIVE ? now : null,
-    fechaSuspension: null,
-    fechaInactivacion: null,
-    fechaArchivado: null,
-    motivoCambioEstado: "Creacion inicial desde RUT con revision humana",
-    cambiadoPor: actor,
-    permiteGenerarTareas: estadoEmpresa === COMPANY_STATUS.ACTIVE,
-    permiteGenerarObligaciones: estadoEmpresa === COMPANY_STATUS.ACTIVE,
-    visibleEnOperacion: estadoEmpresa === COMPANY_STATUS.ACTIVE,
-    createdAt: now,
-    updatedAt: now,
-    documentoRutId: extraction.documentoId,
-    identidadKey: companyIdentityKey(confirmedData),
-    datosExtraidosOriginales: clone(extraction.datosExtraidosOriginales || extraction.datosExtraidos || {}),
-    datosConfirmadosPorUsuario: clone(confirmedData),
-    metadataExtraccion: clone(extraction.metadataExtraccion || {})
-  };
+  if (shouldUpdateExisting) {
+    company =
+      companies.find((item) => item.id === requestedCompanyId) ||
+      matchingCompany;
 
-  companies.push(company);
-  extraction.confirmedAt = now;
-  extraction.companyId = companyId;
-  extraction.datosConfirmadosPorUsuario = clone(confirmedData);
+    if (!company) {
+      throw new Error("No se encontro una empresa existente para actualizar con este RUT.");
+    }
 
-  if (document) {
-    document.empresaId = companyId;
+    if (requestedCompanyId && companyIdentityKey(company) !== companyIdentityKey(confirmedData)) {
+      throw new Error("La empresa seleccionada no coincide con el NIT y DV detectados en el RUT.");
+    }
+
+    const conflictingCompany = companies.find(
+      (item) => item.id !== company.id && companyIdentityKey(item) === companyIdentityKey(confirmedData)
+    );
+    if (conflictingCompany) {
+      throw new Error("Ya existe otra empresa con el mismo NIT y DV. No se pudo actualizar.");
+    }
+
+    applyConfirmedDataToCompany(company, confirmedData, actor, now, extraction);
+    company.documentoRutId = extraction.documentoId;
+    company.motivoCambioEstado = "Actualizacion de datos desde RUT con revision humana";
+
+    extraction.confirmedAt = now;
+    extraction.companyId = company.id;
+    extraction.datosConfirmadosPorUsuario = clone(confirmedData);
+
+    if (document) {
+      document.empresaId = company.id;
+    }
+
+    audits.push(
+      createAuditEntry({
+        organizacionId: organization.id,
+        usuarioId: actor,
+        accion: "actualizar_empresa_desde_rut",
+        modulo: "empresas",
+        recursoTipo: "empresa",
+        recursoId: company.id,
+        descripcion: `Se actualizo la empresa ${company.razonSocial} desde un nuevo RUT con revision humana.`,
+        valorNuevo: {
+          nit: company.nit,
+          dv: company.dv,
+          razonSocial: company.razonSocial,
+          estadoEmpresa: company.estadoEmpresa,
+          documentoRutId: company.documentoRutId
+        }
+      })
+    );
+  } else {
+    if (isDuplicateCompanyIdentity(companies, confirmedData)) {
+      throw new Error("Ya existe una empresa con el mismo NIT y DV.");
+    }
+
+    const companyId = createId("emp");
+    const representative = normalizeRepresentative(confirmedData.representanteLegalPrincipal);
+    const estadoEmpresa = String(payload.estadoEmpresa || COMPANY_STATUS.PENDING_REVIEW).trim() || COMPANY_STATUS.PENDING_REVIEW;
+
+    company = {
+      id: companyId,
+      nit: confirmedData.nit,
+      dv: confirmedData.dv,
+      razonSocial: confirmedData.razonSocial,
+      nombreComercial: confirmedData.nombreComercial,
+      sigla: confirmedData.sigla,
+      numeroFormulario: confirmedData.numeroFormulario,
+      concepto: confirmedData.concepto,
+      direccionSeccional: confirmedData.direccionSeccional,
+      buzonElectronico: confirmedData.buzonElectronico,
+      tipoContribuyente: confirmedData.tipoContribuyente,
+      tipoPersona: confirmedData.tipoPersona,
+      tipoDocumento: confirmedData.tipoDocumento,
+      numeroIdentificacion: confirmedData.numeroIdentificacion,
+      regimenTributario: confirmedData.regimenTributario,
+      regimenTributarioFuente: confirmedData.regimenTributarioFuente,
+      requiereRevisionRegimen: confirmedData.requiereRevisionRegimen,
+      pais: confirmedData.pais,
+      departamento: confirmedData.departamento,
+      municipio: confirmedData.municipio,
+      direccionPrincipal: confirmedData.direccionPrincipal,
+      correoElectronico: confirmedData.correoElectronico,
+      email: confirmedData.email,
+      codigoPostal: confirmedData.codigoPostal,
+      telefono1: confirmedData.telefono1,
+      telefono2: confirmedData.telefono2,
+      actividadEconomicaPrincipal: confirmedData.actividadEconomicaPrincipal,
+      actividadEconomicaPrincipalCodigo: confirmedData.actividadEconomicaPrincipalCodigo,
+      actividadEconomicaPrincipalNombre: confirmedData.actividadEconomicaPrincipalNombre,
+      actividadEconomicaPrincipalFuente: confirmedData.actividadEconomicaPrincipalFuente,
+      fechaInicioActividadPrincipal: confirmedData.fechaInicioActividadPrincipal || null,
+      actividadEconomicaSecundaria: confirmedData.actividadEconomicaSecundaria,
+      fechaInicioActividadSecundaria: confirmedData.fechaInicioActividadSecundaria || null,
+      otrasActividades: confirmedData.otrasActividades,
+      numeroEstablecimientos: confirmedData.numeroEstablecimientos,
+      responsabilidadesTributarias: confirmedData.responsabilidadesTributarias,
+      responsableIva: confirmedData.responsableIva,
+      obligadoLlevarContabilidad: confirmedData.obligadoLlevarContabilidad,
+      obligadoFacturar: confirmedData.obligadoFacturar,
+      informanteExogena: confirmedData.informanteExogena,
+      agenteRetencionFuente: confirmedData.agenteRetencionFuente,
+      informanteBeneficiariosFinales: confirmedData.informanteBeneficiariosFinales,
+      representanteLegalPrincipal: representative,
+      representanteLegal: representative.nombreCompleto,
+      fechaInscripcionRut: payload.fechaInscripcionRut || null,
+      fechaGeneracionRut: confirmedData.fechaGeneracionRut || null,
+      estadoEmpresa,
+      fechaActivacion: estadoEmpresa === COMPANY_STATUS.ACTIVE ? now : null,
+      fechaSuspension: null,
+      fechaInactivacion: null,
+      fechaArchivado: null,
+      motivoCambioEstado: "Creacion inicial desde RUT con revision humana",
+      cambiadoPor: actor,
+      permiteGenerarTareas: estadoEmpresa === COMPANY_STATUS.ACTIVE,
+      permiteGenerarObligaciones: estadoEmpresa === COMPANY_STATUS.ACTIVE,
+      visibleEnOperacion: estadoEmpresa === COMPANY_STATUS.ACTIVE,
+      createdAt: now,
+      updatedAt: now,
+      documentoRutId: extraction.documentoId,
+      identidadKey: companyIdentityKey(confirmedData),
+      datosExtraidosOriginales: clone(extraction.datosExtraidosOriginales || extraction.datosExtraidos || {}),
+      datosConfirmadosPorUsuario: clone(confirmedData),
+      metadataExtraccion: clone(extraction.metadataExtraccion || {})
+    };
+
+    companies.push(company);
+    extraction.confirmedAt = now;
+    extraction.companyId = companyId;
+    extraction.datosConfirmadosPorUsuario = clone(confirmedData);
+
+    if (document) {
+      document.empresaId = companyId;
+    }
+
+    audits.push(
+      createAuditEntry({
+        organizacionId: organization.id,
+        usuarioId: actor,
+        accion: "crear_empresa",
+        modulo: "empresas",
+        recursoTipo: "empresa",
+        recursoId: companyId,
+        descripcion: `Se creo la empresa ${company.razonSocial} desde RUT con revision humana.`,
+        valorNuevo: {
+          nit: company.nit,
+          dv: company.dv,
+          razonSocial: company.razonSocial,
+          estadoEmpresa: company.estadoEmpresa,
+          documentoRutId: company.documentoRutId
+        }
+      })
+    );
   }
-
-  audits.push(
-    createAuditEntry({
-      organizacionId: organization.id,
-      usuarioId: actor,
-      accion: "crear_empresa",
-      modulo: "empresas",
-      recursoTipo: "empresa",
-      recursoId: companyId,
-      descripcion: `Se creo la empresa ${company.razonSocial} desde RUT con revision humana.`,
-      valorNuevo: {
-        nit: company.nit,
-        dv: company.dv,
-        razonSocial: company.razonSocial,
-        estadoEmpresa: company.estadoEmpresa,
-        documentoRutId: company.documentoRutId
-      }
-    })
-  );
 
   saveCompanies(companies);
   saveExtractions(extractions);
   saveDocuments(documents);
   saveAudits(audits);
 
-  return getCompanyDetail(companyId);
+  return getCompanyDetail(company.id);
 }
 
 export function approveCompanyReview(companyId, actor = "usr_admin") {
