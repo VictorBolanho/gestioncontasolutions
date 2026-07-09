@@ -12,6 +12,8 @@
     "dev:web": "node apps/web/server.js",
     "start:api": "node apps/api/src/server.js",
     "start:web": "node apps/web/server.js",
-    "reset:dev-data": "node scripts/reset-dev-data.js --confirm"
+    "smoke:test": "node scripts/smoke-test.js",
+    "reset:dev-data": "node scripts/reset-dev-data.js --confirm",
+    "reset:fiscal-data": "node scripts/reset-fiscal-data.js --confirm"
   }
 }

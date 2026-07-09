@@ -1,20 +1,1145 @@
 [
   {
+    "codigo": "0010",
+    "nombre": "Personas naturales con ingresos de relacion laboral",
+    "seccion": "DIAN",
+    "division": "00",
+    "grupo": "001",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0020",
+    "nombre": "Personas naturales con ingresos de pensiones",
+    "seccion": "DIAN",
+    "division": "00",
+    "grupo": "002",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0081",
+    "nombre": "Personas naturales sin actividad economica",
+    "seccion": "DIAN",
+    "division": "00",
+    "grupo": "008",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0082",
+    "nombre": "Personas naturales rentistas de capital",
+    "seccion": "DIAN",
+    "division": "00",
+    "grupo": "008",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0090",
+    "nombre": "Personas naturales que reciben recursos de terceros",
+    "seccion": "DIAN",
+    "division": "00",
+    "grupo": "009",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0111",
+    "nombre": "Cultivo de cereales, legumbres y semillas oleaginosas",
+    "seccion": "A",
+    "division": "01",
+    "grupo": "011",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0141",
+    "nombre": "Cria de ganado bovino y bufalino",
+    "seccion": "A",
+    "division": "01",
+    "grupo": "014",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0150",
+    "nombre": "Explotacion mixta (agricola y pecuaria)",
+    "seccion": "A",
+    "division": "01",
+    "grupo": "015",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0161",
+    "nombre": "Actividades de apoyo a la agricultura",
+    "seccion": "A",
+    "division": "01",
+    "grupo": "016",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0162",
+    "nombre": "Actividades de apoyo a la ganaderia",
+    "seccion": "A",
+    "division": "01",
+    "grupo": "016",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0311",
+    "nombre": "Pesca maritima",
+    "seccion": "A",
+    "division": "03",
+    "grupo": "031",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0322",
+    "nombre": "Acuicultura de agua dulce",
+    "seccion": "A",
+    "division": "03",
+    "grupo": "032",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0510",
+    "nombre": "Extraccion de hulla (carbon de piedra)",
+    "seccion": "B",
+    "division": "05",
+    "grupo": "051",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0610",
+    "nombre": "Extraccion de petroleo crudo",
+    "seccion": "B",
+    "division": "06",
+    "grupo": "061",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0710",
+    "nombre": "Extraccion de minerales de hierro",
+    "seccion": "B",
+    "division": "07",
+    "grupo": "071",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0820",
+    "nombre": "Extraccion de esmeraldas, piedras preciosas",
+    "seccion": "B",
+    "division": "08",
+    "grupo": "082",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "0892",
+    "nombre": "Extraccion de sal",
+    "seccion": "B",
+    "division": "08",
+    "grupo": "089",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "1011",
+    "nombre": "Procesamiento y conservacion de carne",
+    "seccion": "C",
+    "division": "10",
+    "grupo": "101",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "1081",
+    "nombre": "Elaboracion de productos de panaderia",
+    "seccion": "C",
+    "division": "10",
+    "grupo": "108",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "1083",
+    "nombre": "Elaboracion de cafe",
+    "seccion": "C",
+    "division": "10",
+    "grupo": "108",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "1089",
+    "nombre": "Elaboracion de otros productos alimenticios n.c.p.",
+    "seccion": "C",
+    "division": "10",
+    "grupo": "108",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "1101",
+    "nombre": "Destilacion, rectificacion y mezcla de bebidas alcoholicas",
+    "seccion": "C",
+    "division": "11",
+    "grupo": "110",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "1104",
+    "nombre": "Bebidas no alcoholicas, aguas embotelladas",
+    "seccion": "C",
+    "division": "11",
+    "grupo": "110",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "1392",
+    "nombre": "Confeccion de articulos con materiales textiles",
+    "seccion": "C",
+    "division": "13",
+    "grupo": "139",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "1410",
+    "nombre": "Confeccion de prendas de vestir (excepto prendas de piel)",
+    "seccion": "C",
+    "division": "14",
+    "grupo": "141",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "1511",
+    "nombre": "Curtido y recurtido de cueros",
+    "seccion": "C",
+    "division": "15",
+    "grupo": "151",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "1621",
+    "nombre": "Fabricacion de hojas de madera para enchapado",
+    "seccion": "C",
+    "division": "16",
+    "grupo": "162",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "2011",
+    "nombre": "Fabricacion de sustancias y productos quimicos basicos",
+    "seccion": "C",
+    "division": "20",
+    "grupo": "201",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "2100",
+    "nombre": "Fabricacion de productos farmaceuticos",
+    "seccion": "C",
+    "division": "21",
+    "grupo": "210",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "2610",
+    "nombre": "Fabricacion de componentes electronicos",
+    "seccion": "C",
+    "division": "26",
+    "grupo": "261",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "3100",
+    "nombre": "Fabricacion de muebles",
+    "seccion": "C",
+    "division": "31",
+    "grupo": "310",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4111",
+    "nombre": "Construccion de edificios residenciales",
+    "seccion": "F",
+    "division": "41",
+    "grupo": "411",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4112",
+    "nombre": "Construccion de edificios no residenciales",
+    "seccion": "F",
+    "division": "41",
+    "grupo": "411",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4210",
+    "nombre": "Construccion de carreteras y vias",
+    "seccion": "F",
+    "division": "42",
+    "grupo": "421",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4290",
+    "nombre": "Construccion de otras obras de ingenieria civil",
+    "seccion": "F",
+    "division": "42",
+    "grupo": "429",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4311",
+    "nombre": "Demolicion",
+    "seccion": "F",
+    "division": "43",
+    "grupo": "431",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4321",
+    "nombre": "Instalaciones electricas",
+    "seccion": "F",
+    "division": "43",
+    "grupo": "432",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4322",
+    "nombre": "Instalaciones de fontaneria, calefaccion y aire acondicionado",
+    "seccion": "F",
+    "division": "43",
+    "grupo": "432",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4329",
+    "nombre": "Otras instalaciones especializadas",
+    "seccion": "F",
+    "division": "43",
+    "grupo": "432",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4330",
+    "nombre": "Terminacion y acabado de edificios",
+    "seccion": "F",
+    "division": "43",
+    "grupo": "433",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4641",
+    "nombre": "Comercio al por mayor de productos textiles, productos confeccionados para uso domestico",
+    "seccion": "G",
+    "division": "46",
+    "grupo": "464",
+    "fuente": "DANE CIIU Rev. 4 A.C. 2020/2022",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4642",
+    "nombre": "Comercio al por mayor de prendas de vestir",
+    "seccion": "G",
+    "division": "46",
+    "grupo": "464",
+    "fuente": "DANE CIIU Rev. 4 A.C. 2020/2022",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4643",
+    "nombre": "Comercio al por mayor de calzado",
+    "seccion": "G",
+    "division": "46",
+    "grupo": "464",
+    "fuente": "DANE CIIU Rev. 4 A.C. 2020/2022",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4644",
+    "nombre": "Comercio al por mayor de aparatos y equipo de uso domestico",
+    "seccion": "G",
+    "division": "46",
+    "grupo": "464",
+    "fuente": "DANE CIIU Rev. 4 A.C. 2020/2022",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4645",
+    "nombre": "Comercio al por mayor de productos farmaceuticos, medicinales, cosmeticos y de tocador",
+    "seccion": "G",
+    "division": "46",
+    "grupo": "464",
+    "fuente": "DANE CIIU Rev. 4 A.C. 2020/2022",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4649",
+    "nombre": "Comercio al por mayor de otros utensilios domesticos n.c.p.",
+    "seccion": "G",
+    "division": "46",
+    "grupo": "464",
+    "fuente": "DANE CIIU Rev. 4 A.C. 2020/2022",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4711",
+    "nombre": "Comercio al por menor en establecimientos no especializados con surtido compuesto principalmente de alimentos",
+    "seccion": "G",
+    "division": "47",
+    "grupo": "471",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4719",
+    "nombre": "Comercio al por menor en establecimientos no especializados, sin predominio de alimentos",
+    "seccion": "G",
+    "division": "47",
+    "grupo": "471",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4721",
+    "nombre": "Comercio al por menor de productos alimenticios",
+    "seccion": "G",
+    "division": "47",
+    "grupo": "472",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4731",
+    "nombre": "Combustibles para automotores",
+    "seccion": "G",
+    "division": "47",
+    "grupo": "473",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4741",
+    "nombre": "Computadores, equipos perifericos, software y equipos de telecomunicaciones",
+    "seccion": "G",
+    "division": "47",
+    "grupo": "474",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4751",
+    "nombre": "Telas y merceria",
+    "seccion": "G",
+    "division": "47",
+    "grupo": "475",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4761",
+    "nombre": "Libros, periodicos, materiales y articulos de papeleria",
+    "seccion": "G",
+    "division": "47",
+    "grupo": "476",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4771",
+    "nombre": "Prendas de vestir",
+    "seccion": "G",
+    "division": "47",
+    "grupo": "477",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4781",
+    "nombre": "Alimentos, bebidas y tabaco en puestos de venta moviles",
+    "seccion": "G",
+    "division": "47",
+    "grupo": "478",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4791",
+    "nombre": "Comercio al por menor por internet",
+    "seccion": "G",
+    "division": "47",
+    "grupo": "479",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4792",
+    "nombre": "Comercio al por menor realizado a traves de casas de venta o por correo",
+    "seccion": "G",
+    "division": "47",
+    "grupo": "479",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4921",
+    "nombre": "Transporte urbano de pasajeros",
+    "seccion": "H",
+    "division": "49",
+    "grupo": "492",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4922",
+    "nombre": "Transporte intermunicipal de pasajeros",
+    "seccion": "H",
+    "division": "49",
+    "grupo": "492",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4923",
+    "nombre": "Transporte escolar y de empleados",
+    "seccion": "H",
+    "division": "49",
+    "grupo": "492",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "4930",
+    "nombre": "Transporte de carga por carretera",
+    "seccion": "H",
+    "division": "49",
+    "grupo": "493",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "5110",
+    "nombre": "Transporte aereo de pasajeros",
+    "seccion": "H",
+    "division": "51",
+    "grupo": "511",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "5221",
+    "nombre": "Actividades de estaciones de transporte terrestre",
+    "seccion": "H",
+    "division": "52",
+    "grupo": "522",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "5511",
+    "nombre": "Alojamiento en hoteles",
+    "seccion": "I",
+    "division": "55",
+    "grupo": "551",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "5514",
+    "nombre": "Alojamiento en apartamentos turisticos",
+    "seccion": "I",
+    "division": "55",
+    "grupo": "551",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "5519",
+    "nombre": "Otros tipos de alojamiento",
+    "seccion": "I",
+    "division": "55",
+    "grupo": "551",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "5611",
+    "nombre": "Expendio de comidas preparadas en restaurantes",
+    "seccion": "I",
+    "division": "56",
+    "grupo": "561",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "5612",
+    "nombre": "Expendio de comidas preparadas en cafeterias y similares",
+    "seccion": "I",
+    "division": "56",
+    "grupo": "561",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "5613",
+    "nombre": "Expendio de comidas preparadas en autoservicios",
+    "seccion": "I",
+    "division": "56",
+    "grupo": "561",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "5619",
+    "nombre": "Otros tipos de expendio de comidas preparadas n.c.p.",
+    "seccion": "I",
+    "division": "56",
+    "grupo": "561",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "5621",
+    "nombre": "Catering para eventos",
+    "seccion": "I",
+    "division": "56",
+    "grupo": "562",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "5630",
+    "nombre": "Expendio de bebidas alcoholicas para el consumo dentro del establecimiento",
+    "seccion": "I",
+    "division": "56",
+    "grupo": "563",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6201",
+    "nombre": "Actividades de desarrollo de sistemas informaticos (planificacion, analisis, diseno)",
+    "seccion": "J",
+    "division": "62",
+    "grupo": "620",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6202",
+    "nombre": "Actividades de consultoria informatica",
+    "seccion": "J",
+    "division": "62",
+    "grupo": "620",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6209",
+    "nombre": "Otras actividades de tecnologia de informacion",
+    "seccion": "J",
+    "division": "62",
+    "grupo": "620",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6311",
+    "nombre": "Procesamiento de datos, alojamiento (hosting) y actividades relacionadas",
+    "seccion": "J",
+    "division": "63",
+    "grupo": "631",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6391",
+    "nombre": "Actividades de agencias de noticias",
+    "seccion": "J",
+    "division": "63",
+    "grupo": "639",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6399",
+    "nombre": "Otras actividades de servicios de informacion n.c.p.",
+    "seccion": "J",
+    "division": "63",
+    "grupo": "639",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6412",
+    "nombre": "Bancos comerciales",
+    "seccion": "K",
+    "division": "64",
+    "grupo": "641",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6491",
+    "nombre": "Arrendamiento financiero (leasing)",
+    "seccion": "K",
+    "division": "64",
+    "grupo": "649",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6499",
+    "nombre": "Otras actividades de servicios financieros n.c.p.",
+    "seccion": "K",
+    "division": "64",
+    "grupo": "649",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6512",
+    "nombre": "Seguros de vida",
+    "seccion": "K",
+    "division": "65",
+    "grupo": "651",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6513",
+    "nombre": "Seguros generales",
+    "seccion": "K",
+    "division": "65",
+    "grupo": "651",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6621",
+    "nombre": "Actividades de agentes y corredores de seguros",
+    "seccion": "K",
+    "division": "66",
+    "grupo": "662",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6630",
+    "nombre": "Actividades de administracion de fondos",
+    "seccion": "K",
+    "division": "66",
+    "grupo": "663",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6810",
+    "nombre": "Actividades inmobiliarias realizadas con bienes propios o arrendados",
+    "seccion": "L",
+    "division": "68",
+    "grupo": "681",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6820",
+    "nombre": "Actividades inmobiliarias realizadas a cambio de una retribucion o por contrata",
+    "seccion": "L",
+    "division": "68",
+    "grupo": "682",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6910",
+    "nombre": "Actividades juridicas",
+    "seccion": "M",
+    "division": "69",
+    "grupo": "691",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "6920",
+    "nombre": "Actividades de contabilidad, teneduria de libros, auditoria financiera y asesoria tributaria",
+    "seccion": "M",
+    "division": "69",
+    "grupo": "692",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "7010",
+    "nombre": "Actividades de administracion empresarial",
+    "seccion": "M",
+    "division": "70",
+    "grupo": "701",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
     "codigo": "7020",
     "nombre": "Actividades de consultoria de gestion",
     "seccion": "M",
     "division": "70",
     "grupo": "702",
-    "fuente": "CIIU Rev. 4 A.C. Colombia",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
     "estado": "activo"
   },
   {
-    "codigo": "4771",
-    "nombre": "Comercio al por menor de prendas de vestir y sus accesorios en establecimientos especializados",
-    "seccion": "G",
-    "division": "47",
-    "grupo": "477",
-    "fuente": "CIIU Rev. 4 A.C. Colombia",
+    "codigo": "7110",
+    "nombre": "Actividades de arquitectura e ingenieria",
+    "seccion": "M",
+    "division": "71",
+    "grupo": "711",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "7120",
+    "nombre": "Ensayos y analisis tecnicos",
+    "seccion": "M",
+    "division": "71",
+    "grupo": "712",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "7210",
+    "nombre": "Investigaciones y desarrollo experimental en ciencias naturales e ingenieria",
+    "seccion": "M",
+    "division": "72",
+    "grupo": "721",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "7310",
+    "nombre": "Publicidad",
+    "seccion": "M",
+    "division": "73",
+    "grupo": "731",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "7320",
+    "nombre": "Estudios de mercado y realizacion de encuestas",
+    "seccion": "M",
+    "division": "73",
+    "grupo": "732",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "7410",
+    "nombre": "Actividades especializadas de diseno",
+    "seccion": "M",
+    "division": "74",
+    "grupo": "741",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "7490",
+    "nombre": "Otras actividades profesionales, cientificas y tecnicas n.c.p.",
+    "seccion": "M",
+    "division": "74",
+    "grupo": "749",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "7500",
+    "nombre": "Actividades veterinarias",
+    "seccion": "M",
+    "division": "75",
+    "grupo": "750",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "7810",
+    "nombre": "Actividades de agencias de empleo",
+    "seccion": "N",
+    "division": "78",
+    "grupo": "781",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "7911",
+    "nombre": "Actividades de agencias de viajes",
+    "seccion": "N",
+    "division": "79",
+    "grupo": "791",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8110",
+    "nombre": "Actividades combinadas de apoyo a instalaciones",
+    "seccion": "N",
+    "division": "81",
+    "grupo": "811",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8121",
+    "nombre": "Limpieza general interior de edificios",
+    "seccion": "N",
+    "division": "81",
+    "grupo": "812",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8211",
+    "nombre": "Actividades combinadas de servicios administrativos de oficina",
+    "seccion": "N",
+    "division": "82",
+    "grupo": "821",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8299",
+    "nombre": "Otras actividades de servicio de apoyo a las empresas n.c.p.",
+    "seccion": "N",
+    "division": "82",
+    "grupo": "829",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8511",
+    "nombre": "Educacion de la primera infancia",
+    "seccion": "P",
+    "division": "85",
+    "grupo": "851",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8512",
+    "nombre": "Educacion basica primaria",
+    "seccion": "P",
+    "division": "85",
+    "grupo": "851",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8521",
+    "nombre": "Educacion basica secundaria",
+    "seccion": "P",
+    "division": "85",
+    "grupo": "852",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8530",
+    "nombre": "Educacion tecnica y tecnologica",
+    "seccion": "P",
+    "division": "85",
+    "grupo": "853",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8541",
+    "nombre": "Educacion universitaria de pregrado",
+    "seccion": "P",
+    "division": "85",
+    "grupo": "854",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8553",
+    "nombre": "Ensenanza de idiomas",
+    "seccion": "P",
+    "division": "85",
+    "grupo": "855",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8559",
+    "nombre": "Otros tipos de educacion n.c.p.",
+    "seccion": "P",
+    "division": "85",
+    "grupo": "855",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8610",
+    "nombre": "Actividades de hospitales y clinicas",
+    "seccion": "Q",
+    "division": "86",
+    "grupo": "861",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8621",
+    "nombre": "Actividades de la practica medica, sin internacion",
+    "seccion": "Q",
+    "division": "86",
+    "grupo": "862",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8622",
+    "nombre": "Actividades de la practica odontologica",
+    "seccion": "Q",
+    "division": "86",
+    "grupo": "862",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "8690",
+    "nombre": "Otras actividades de atencion de la salud humana",
+    "seccion": "Q",
+    "division": "86",
+    "grupo": "869",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "9000",
+    "nombre": "Actividades creativas, artisticas y de entretenimiento",
+    "seccion": "R",
+    "division": "90",
+    "grupo": "900",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "9101",
+    "nombre": "Actividades de bibliotecas y archivos",
+    "seccion": "R",
+    "division": "91",
+    "grupo": "910",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "9200",
+    "nombre": "Actividades de juegos de azar y apuestas",
+    "seccion": "R",
+    "division": "92",
+    "grupo": "920",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "9311",
+    "nombre": "Gestion de instalaciones deportivas",
+    "seccion": "R",
+    "division": "93",
+    "grupo": "931",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "9312",
+    "nombre": "Actividades de clubes deportivos",
+    "seccion": "R",
+    "division": "93",
+    "grupo": "931",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "9321",
+    "nombre": "Actividades de parques de atracciones y parques tematicos",
+    "seccion": "R",
+    "division": "93",
+    "grupo": "932",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "9511",
+    "nombre": "Reparacion de computadores y equipos perifericos",
+    "seccion": "S",
+    "division": "95",
+    "grupo": "951",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "9512",
+    "nombre": "Reparacion de equipos de comunicacion",
+    "seccion": "S",
+    "division": "95",
+    "grupo": "951",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "9521",
+    "nombre": "Reparacion de aparatos electronicos de consumo",
+    "seccion": "S",
+    "division": "95",
+    "grupo": "952",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "9523",
+    "nombre": "Reparacion de calzado y articulos de cuero",
+    "seccion": "S",
+    "division": "95",
+    "grupo": "952",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
+    "estado": "activo"
+  },
+  {
+    "codigo": "9601",
+    "nombre": "Lavado y limpieza de prendas de tela",
+    "seccion": "S",
+    "division": "96",
+    "grupo": "960",
+    "fuente": "dian.com.co 2026 basado en CIIU Rev. 4 A.C.",
     "estado": "activo"
   }
 ]
