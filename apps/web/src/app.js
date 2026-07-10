@@ -134,9 +134,10 @@ const ALERT_LEVEL_OPTIONS = [
 ];
 
 const ALERT_STATUS_OPTIONS = [
-  { value: "no_leida", label: "No leida" },
+  { value: "no_leida", label: "Nueva" },
   { value: "leida", label: "Leida" },
-  { value: "atendida", label: "Atendida" }
+  { value: "atendida", label: "Atendida" },
+  { value: "descartada", label: "Descartada" }
 ];
 
 const ROLE_OPTIONS = [
@@ -2005,6 +2006,14 @@ function alertLevelLabel(value) {
   return ALERT_LEVEL_OPTIONS.find((option) => option.value === value)?.label || formatStatus(value || "-");
 }
 
+function alertStatusLabel(value) {
+  return ALERT_STATUS_OPTIONS.find((option) => option.value === value)?.label || formatStatus(value || "-");
+}
+
+function isClosedAlert(alert) {
+  return ["atendida", "descartada"].includes(String(alert?.estado || ""));
+}
+
 function renderTaskActionIcon(icon) {
   const icons = {
     play:
@@ -3175,9 +3184,9 @@ function operationalCalendarSection() {
 
 function alertsSection() {
   const unreadCount = state.internalAlerts.filter((alert) => alert.estado === "no_leida").length;
-  const criticalCount = state.internalAlerts.filter((alert) => alert.nivel === "critica" && alert.estado !== "atendida").length;
+  const criticalCount = state.internalAlerts.filter((alert) => alert.nivel === "critica" && !isClosedAlert(alert)).length;
   const dianAlertCount = state.internalAlerts.filter(
-    (alert) => alert.estado !== "atendida" && alert.tarea?.tipoTarea === "cumplimiento_dian"
+    (alert) => !isClosedAlert(alert) && alert.tarea?.tipoTarea === "cumplimiento_dian"
   ).length;
 
   return `
@@ -3195,7 +3204,7 @@ function alertsSection() {
       <div class="summary-grid">
         <article class="summary-list-card">
           <strong>${escapeHtml(String(unreadCount))}</strong>
-          <span>No leidas visibles para tu usuario</span>
+          <span>Nuevas visibles para tu usuario</span>
         </article>
         <article class="summary-list-card">
           <strong>${escapeHtml(String(criticalCount))}</strong>
@@ -3271,17 +3280,29 @@ function alertsSection() {
                     <td>${escapeHtml(alert.tarea?.empresa?.razonSocial || alert.empresaId || "-")}</td>
                     <td>${escapeHtml(alert.tarea?.responsable?.nombreCompleto || alert.responsableId || "Sin responsable")}</td>
                     <td>${escapeHtml(formatDateLabel(alert.fechaVencimiento))}</td>
-                    <td><span class="${statusClass(alert.estado)}">${escapeHtml(formatStatus(alert.estado))}</span></td>
+                    <td>
+                      <span class="${statusClass(alert.estado)}">${escapeHtml(alertStatusLabel(alert.estado))}</span>
+                      ${
+                        alert.motivoEstado
+                          ? `<div class="muted table-subtext">${escapeHtml(alert.motivoEstado)}</div>`
+                          : ""
+                      }
+                    </td>
                     <td>
                       <div class="calendar-row-actions">
                         ${
                           alert.estado === "no_leida"
-                            ? `<button class="btn btn-secondary table-action" type="button" data-action="alert-status" data-alert-id="${escapeHtml(alert.id)}" data-alert-status="leida">Leida</button>`
+                            ? `<button class="btn btn-secondary table-action" type="button" data-action="alert-status" data-alert-id="${escapeHtml(alert.id)}" data-alert-status="leida">Marcar leida</button>`
                             : ""
                         }
                         ${
-                          alert.estado !== "atendida"
+                          !isClosedAlert(alert)
                             ? `<button class="btn btn-secondary table-action" type="button" data-action="alert-status" data-alert-id="${escapeHtml(alert.id)}" data-alert-status="atendida">Atendida</button>`
+                            : ""
+                        }
+                        ${
+                          !isClosedAlert(alert)
+                            ? `<button class="btn btn-secondary table-action" type="button" data-action="alert-status" data-alert-id="${escapeHtml(alert.id)}" data-alert-status="descartada">Descartar</button>`
                             : '<span class="muted">Sin acciones</span>'
                         }
                       </div>
@@ -6270,7 +6291,7 @@ function dashboardSection() {
                             <td>${escapeHtml(alert.empresa || alert.empresaId || "-")}</td>
                             <td>${escapeHtml(alert.responsable || alert.responsableId || "Sin responsable")}</td>
                             <td>${escapeHtml(formatDateLabel(alert.fechaVencimiento))}</td>
-                            <td><span class="${statusClass(alert.estado || "no_leida")}">${escapeHtml(formatStatus(alert.estado || "no_leida"))}</span></td>
+                            <td><span class="${statusClass(alert.estado || "no_leida")}">${escapeHtml(alertStatusLabel(alert.estado || "no_leida"))}</span></td>
                           </tr>
                         `
                       )
@@ -6431,7 +6452,7 @@ function reportesSection() {
       return !Number.isNaN(dueDate.getTime()) && dueDate >= today && dueDate <= next30Days;
     })
     .sort((a, b) => String(a.fechaVencimiento || "").localeCompare(String(b.fechaVencimiento || "")));
-  const criticalAlerts = state.internalAlerts.filter((alert) => alert.nivel === "critica" && alert.estado !== "cerrada");
+  const criticalAlerts = state.internalAlerts.filter((alert) => alert.nivel === "critica" && !isClosedAlert(alert));
 
   const companySummaries = operationalCompanies
     .map((company) => {
@@ -8210,6 +8231,16 @@ function bindEvents() {
     button.addEventListener("click", async () => {
       const alertId = button.getAttribute("data-alert-id");
       const nextStatus = button.getAttribute("data-alert-status");
+      const requiresReason = ["atendida", "descartada"].includes(String(nextStatus || ""));
+      const reasonPrompt =
+        nextStatus === "descartada"
+          ? "Motivo opcional para descartar la alerta:"
+          : "Motivo opcional para atender la alerta:";
+      const reason = requiresReason ? window.prompt(reasonPrompt, "") : "";
+
+      if (reason === null) {
+        return;
+      }
 
       try {
         await fetchJson(`/api/alerts/${alertId}/status`, {
@@ -8217,10 +8248,19 @@ function bindEvents() {
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ estado: nextStatus })
+          body: JSON.stringify({
+            estado: nextStatus,
+            motivo: String(reason || "").trim()
+          })
         });
-        state.calendarMessage = nextStatus === "atendida" ? "Alerta atendida correctamente." : "Alerta marcada como leida.";
+        state.calendarMessage =
+          nextStatus === "atendida"
+            ? "Alerta atendida correctamente."
+            : nextStatus === "descartada"
+              ? "Alerta descartada correctamente."
+              : "Alerta marcada como leida.";
         await refreshInternalAlerts();
+        await refreshDashboard();
       } catch (error) {
         state.calendarMessage = toUserMessage(error, "No se pudo actualizar la alerta.");
       }

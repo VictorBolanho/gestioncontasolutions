@@ -74,6 +74,7 @@ import {
   listInternalAlerts,
   updateInternalAlertStatus
 } from "./lib/alert-service.js";
+import { canUserAccessAlert } from "./lib/alert-access.js";
 import { buildDashboard } from "./lib/dashboard-service.js";
 import { ensureStorage } from "./lib/storage.js";
 import { getAudits, getUsers } from "./lib/storage.js";
@@ -178,14 +179,6 @@ function userCanAccessCompany(currentUser, companyId) {
     },
     companyId
   );
-}
-
-function userCanAccessAlert(currentUser, alert) {
-  if (!alert) {
-    return false;
-  }
-
-  return userCanAccessCompany(currentUser, alert.empresaId) || alert.responsableId === currentUser?.id;
 }
 
 function userCanAccessTask(currentUser, task) {
@@ -718,7 +711,7 @@ const server = http.createServer((request, response) => {
     };
 
     sendJson(response, 200, {
-      items: listInternalAlerts(filters).filter((alert) => userCanAccessAlert(currentUser, alert))
+      items: listInternalAlerts(filters).filter((alert) => canUserAccessAlert(currentUser, alert))
     });
     return;
   }
@@ -731,7 +724,7 @@ const server = http.createServer((request, response) => {
     const summary = generateInternalAlerts(currentUser.id);
     sendJson(response, 201, {
       ...summary,
-      items: summary.items.filter((alert) => userCanAccessAlert(currentUser, alert))
+      items: summary.items.filter((alert) => canUserAccessAlert(currentUser, alert))
     });
     return;
   }
@@ -749,12 +742,14 @@ const server = http.createServer((request, response) => {
           sendJson(response, 404, { error: "Alerta no encontrada." });
           return;
         }
-        if (!userCanAccessAlert(currentUser, alert)) {
+        if (!canUserAccessAlert(currentUser, alert)) {
           sendJson(response, 403, { error: "No tienes acceso a esta alerta." });
           return;
         }
         const payload = await readJsonBody(request);
-        const result = updateInternalAlertStatus(alertId, payload.estado, currentUser.id);
+        const result = updateInternalAlertStatus(alertId, payload.estado, currentUser.id, {
+          motivo: payload.motivo || payload.observaciones || ""
+        });
         sendJson(response, 200, result);
       })
       .catch((error) => sendApiError(response, error, "No fue posible actualizar la alerta."));

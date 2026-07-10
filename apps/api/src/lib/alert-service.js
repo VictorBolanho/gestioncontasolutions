@@ -8,18 +8,31 @@ import {
 } from "./storage.js";
 import { listTasks } from "./task-service.js";
 
-const ALERT_TYPES = Object.freeze({
+export const ALERT_TYPES = Object.freeze({
   UPCOMING: "proxima_vencer",
   OVERDUE: "vencida"
 });
 
-const ALERT_STATUS = Object.freeze({
+export const ALERT_STATUS = Object.freeze({
   UNREAD: "no_leida",
   READ: "leida",
-  ATTENDED: "atendida"
+  ATTENDED: "atendida",
+  DISMISSED: "descartada"
 });
 
+const ACTIVE_ALERT_STATUSES = new Set([ALERT_STATUS.UNREAD, ALERT_STATUS.READ]);
+const CLOSED_ALERT_STATUSES = new Set([ALERT_STATUS.ATTENDED, ALERT_STATUS.DISMISSED]);
 const CLOSED_TASK_STATUSES = new Set(["presentada", "completada", "cancelada", "no_aplica"]);
+const ALERT_STATUS_ALIASES = Object.freeze({
+  nueva: ALERT_STATUS.UNREAD,
+  cerrada: ALERT_STATUS.DISMISSED
+});
+const ALERT_STATUS_TRANSITIONS = Object.freeze({
+  [ALERT_STATUS.UNREAD]: new Set([ALERT_STATUS.READ, ALERT_STATUS.ATTENDED, ALERT_STATUS.DISMISSED]),
+  [ALERT_STATUS.READ]: new Set([ALERT_STATUS.ATTENDED, ALERT_STATUS.DISMISSED]),
+  [ALERT_STATUS.ATTENDED]: new Set(),
+  [ALERT_STATUS.DISMISSED]: new Set()
+});
 
 function createId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -51,20 +64,52 @@ function daysUntil(dateValue) {
   return Math.floor((end.getTime() - start.getTime()) / 86400000);
 }
 
+function normalizeAlertStatus(value) {
+  const normalized = String(value || "").trim();
+  return ALERT_STATUS_ALIASES[normalized] || normalized || ALERT_STATUS.UNREAD;
+}
+
+function isActiveAlertStatus(status) {
+  return ACTIVE_ALERT_STATUSES.has(normalizeAlertStatus(status));
+}
+
+function isClosedAlertStatus(status) {
+  return CLOSED_ALERT_STATUSES.has(normalizeAlertStatus(status));
+}
+
 function alertKey(alert) {
   return `${alert.tareaId}:${alert.tipo}`;
 }
 
+function buildAlertConditionHash({ tareaId = "", tipo = "", nivel = "", fechaVencimiento = "" } = {}) {
+  return [String(tareaId || "").trim(), String(tipo || "").trim(), String(nivel || "").trim(), String(fechaVencimiento || "").trim()].join("|");
+}
+
 function normalizeAlert(alert = {}) {
+  const status = normalizeAlertStatus(alert.estado);
+  const taskId = alert.tareaId || alert.taskId || "";
+  const type = alert.tipo || ALERT_TYPES.UPCOMING;
+  const level = alert.nivel || "informativa";
+  const dueDate = alert.fechaVencimiento || "";
+
   return {
     ...alert,
-    estado: alert.estado || ALERT_STATUS.UNREAD,
-    nivel: alert.nivel || "informativa",
-    tipo: alert.tipo || ALERT_TYPES.UPCOMING,
-    tareaId: alert.tareaId || alert.taskId || "",
+    estado: status,
+    nivel: level,
+    tipo: type,
+    tareaId: taskId,
     empresaId: alert.empresaId || "",
     responsableId: alert.responsableId || "",
-    fechaVencimiento: alert.fechaVencimiento || "",
+    fechaVencimiento: dueDate,
+    motivoEstado: alert.motivoEstado || alert.motivoCierreAutomatico || "",
+    conditionHash:
+      alert.conditionHash ||
+      buildAlertConditionHash({
+        tareaId: taskId,
+        tipo: type,
+        nivel: level,
+        fechaVencimiento: dueDate
+      }),
     createdAt: alert.createdAt || new Date().toISOString(),
     updatedAt: alert.updatedAt || alert.createdAt || new Date().toISOString()
   };
@@ -95,6 +140,7 @@ function closeAlert(alert, actor, reason) {
   alert.actualizadaPor = actor;
   alert.atendidaAt = alert.atendidaAt || alert.updatedAt;
   alert.atendidaPor = alert.atendidaPor || actor;
+  alert.motivoEstado = reason;
   alert.motivoCierreAutomatico = reason;
   return previous;
 }
@@ -156,6 +202,15 @@ function buildAlertDraft(task) {
   return null;
 }
 
+function buildDraftConditionHash(task, draft) {
+  return buildAlertConditionHash({
+    tareaId: task?.id || "",
+    tipo: draft?.tipo || "",
+    nivel: draft?.nivel || "",
+    fechaVencimiento: task?.fechaVencimiento || ""
+  });
+}
+
 function reconcileAlerts(alerts, tasks, actor) {
   const taskMap = new Map(tasks.map((task) => [task.id, task]));
   let changed = false;
@@ -163,7 +218,9 @@ function reconcileAlerts(alerts, tasks, actor) {
   for (const alert of alerts) {
     const task = taskMap.get(alert.tareaId);
     const draft = task ? buildAlertDraft(task) : null;
-    const isActive = alert.estado !== ALERT_STATUS.ATTENDED;
+    const nextConditionHash = draft ? buildDraftConditionHash(task, draft) : "";
+    const isActive = isActiveAlertStatus(alert.estado);
+    const isClosed = isClosedAlertStatus(alert.estado);
 
     if (!draft && isActive) {
       const previous = closeAlert(alert, actor, "La tarea ya no requiere una alerta activa.");
@@ -176,6 +233,10 @@ function reconcileAlerts(alerts, tasks, actor) {
       continue;
     }
 
+    if (isClosed && alert.conditionHash !== nextConditionHash) {
+      continue;
+    }
+
     const nextMessage = draft.mensaje;
     const nextLevel = draft.nivel;
     const nextType = draft.tipo;
@@ -184,7 +245,8 @@ function reconcileAlerts(alerts, tasks, actor) {
       alert.nivel !== nextLevel ||
       alert.mensaje !== nextMessage ||
       alert.fechaVencimiento !== task.fechaVencimiento ||
-      alert.responsableId !== (task.responsableId || "");
+      alert.responsableId !== (task.responsableId || "") ||
+      alert.conditionHash !== nextConditionHash;
 
     if (!requiresUpdate) {
       continue;
@@ -196,9 +258,12 @@ function reconcileAlerts(alerts, tasks, actor) {
     alert.mensaje = nextMessage;
     alert.fechaVencimiento = task.fechaVencimiento;
     alert.responsableId = task.responsableId || "";
+    alert.conditionHash = nextConditionHash;
     alert.updatedAt = new Date().toISOString();
     alert.actualizadaPor = actor;
-    delete alert.motivoCierreAutomatico;
+    if (isActive) {
+      delete alert.motivoCierreAutomatico;
+    }
     auditAlert("actualizar_alerta_interna", alert, actor, "La alerta se sincronizo con la tarea.", previous);
     changed = true;
   }
@@ -245,11 +310,25 @@ function auditAlert(action, alert, actor, description, previous = null) {
   saveAudits(audits);
 }
 
-export function generateInternalAlerts(actor = "system") {
+function buildAlertViews(alerts, tasks) {
+  const taskMap = new Map(tasks.map((task) => [task.id, task]));
+  return alerts
+    .map((alert) => buildAlertView(alert, taskMap.get(alert.tareaId) || null))
+    .sort((left, right) => {
+      return String(left.estado).localeCompare(String(right.estado)) ||
+        String(left.fechaVencimiento || "").localeCompare(String(right.fechaVencimiento || "")) ||
+        String(right.createdAt || "").localeCompare(String(left.createdAt || ""));
+    });
+}
+
+function reconcileAndPersistAlerts(actor = "system") {
   const tasks = listTasks();
   const alerts = normalizeAndPersistAlerts();
   const reconciled = reconcileAlerts(alerts, tasks, actor);
-  const existingKeys = new Set(alerts.map(alertKey));
+  const activeKeys = new Set(alerts.filter((alert) => isActiveAlertStatus(alert.estado)).map(alertKey));
+  const closedConditionHashes = new Set(
+    alerts.filter((alert) => isClosedAlertStatus(alert.estado)).map((alert) => alert.conditionHash)
+  );
   const createdAlerts = [];
 
   for (const task of tasks) {
@@ -268,17 +347,18 @@ export function generateInternalAlerts(actor = "system") {
       responsableId: task.responsableId || "",
       fechaVencimiento: task.fechaVencimiento,
       mensaje: draft.mensaje,
+      conditionHash: buildDraftConditionHash(task, draft),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       creadaPor: actor
     };
 
-    if (existingKeys.has(alertKey(nextAlert))) {
+    if (activeKeys.has(alertKey(nextAlert)) || closedConditionHashes.has(nextAlert.conditionHash)) {
       continue;
     }
 
     alerts.push(nextAlert);
-    existingKeys.add(alertKey(nextAlert));
+    activeKeys.add(alertKey(nextAlert));
     createdAlerts.push(nextAlert);
     auditAlert("generar_alerta_interna", nextAlert, actor, `Se genero una alerta ${nextAlert.tipo} para la tarea ${task.titulo || task.id}.`);
   }
@@ -288,32 +368,62 @@ export function generateInternalAlerts(actor = "system") {
   }
 
   return {
-    createdCount: createdAlerts.length,
-    items: createdAlerts.map((alert) => buildAlertView(alert, tasks.find((task) => task.id === alert.tareaId)))
+    alerts,
+    tasks,
+    createdAlerts
   };
 }
 
-export function listInternalAlerts(filters = {}) {
-  generateInternalAlerts("system");
-  const tasks = listTasks();
-  const taskMap = new Map(tasks.map((task) => [task.id, task]));
-  const status = String(filters.estado || "").trim();
+export function canTransitionInternalAlert(currentStatus, nextStatus) {
+  const normalizedCurrentStatus = normalizeAlertStatus(currentStatus);
+  const normalizedNextStatus = normalizeAlertStatus(nextStatus);
+
+  if (!normalizedCurrentStatus || !normalizedNextStatus) {
+    return false;
+  }
+
+  if (normalizedCurrentStatus === normalizedNextStatus) {
+    return true;
+  }
+
+  return (ALERT_STATUS_TRANSITIONS[normalizedCurrentStatus] || new Set()).has(normalizedNextStatus);
+}
+
+export function getInternalAlertStatusTransitions(status) {
+  const normalizedStatus = normalizeAlertStatus(status);
+  return Array.from(ALERT_STATUS_TRANSITIONS[normalizedStatus] || []);
+}
+
+export function generateInternalAlerts(actor = "system") {
+  const { tasks, createdAlerts } = reconcileAndPersistAlerts(actor);
+  return {
+    createdCount: createdAlerts.length,
+    items: buildAlertViews(createdAlerts, tasks)
+  };
+}
+
+export function reconcileAndListInternalAlerts(filters = {}, actor = "system") {
+  const { alerts, tasks } = reconcileAndPersistAlerts(actor);
+  const status = normalizeAlertStatus(filters.estado);
   const type = String(filters.tipo || "").trim();
   const level = String(filters.nivel || "").trim();
 
-  return normalizeAndPersistAlerts()
-    .filter((alert) => {
-      if (status && alert.estado !== status) return false;
-      if (type && alert.tipo !== type) return false;
-      if (level && alert.nivel !== level) return false;
-      return true;
-    })
-    .map((alert) => buildAlertView(alert, taskMap.get(alert.tareaId) || null))
-    .sort((left, right) => {
-      return String(left.estado).localeCompare(String(right.estado)) ||
-        String(left.fechaVencimiento || "").localeCompare(String(right.fechaVencimiento || "")) ||
-        String(right.createdAt || "").localeCompare(String(left.createdAt || ""));
-    });
+  const filteredAlerts = alerts.filter((alert) => {
+    if (status && alert.estado !== status) return false;
+    if (type && alert.tipo !== type) return false;
+    if (level && alert.nivel !== level) return false;
+    return true;
+  });
+
+  return buildAlertViews(filteredAlerts, tasks);
+}
+
+export function listInternalAlerts(filters = {}) {
+  return reconcileAndListInternalAlerts(filters, "system");
+}
+
+export function listCurrentInternalAlerts(actor = "system") {
+  return reconcileAndListInternalAlerts({}, actor);
 }
 
 export function getInternalAlertById(alertId) {
@@ -322,9 +432,9 @@ export function getInternalAlertById(alertId) {
   return alert ? buildAlertView(alert, tasks.find((task) => task.id === alert.tareaId) || null) : null;
 }
 
-export function updateInternalAlertStatus(alertId, status, actor = "system") {
-  const normalizedStatus = String(status || "").trim();
-  if (![ALERT_STATUS.READ, ALERT_STATUS.ATTENDED].includes(normalizedStatus)) {
+export function updateInternalAlertStatus(alertId, status, actor = "system", options = {}) {
+  const normalizedStatus = normalizeAlertStatus(status);
+  if (![ALERT_STATUS.READ, ALERT_STATUS.ATTENDED, ALERT_STATUS.DISMISSED].includes(normalizedStatus)) {
     throw createAlertError("El estado de alerta no es valido.", 400);
   }
 
@@ -334,10 +444,15 @@ export function updateInternalAlertStatus(alertId, status, actor = "system") {
     throw createAlertError("Alerta no encontrada.", 404);
   }
 
+  if (!canTransitionInternalAlert(alert.estado, normalizedStatus)) {
+    throw createAlertError("La transicion de estado de la alerta no es valida.", 400);
+  }
+
   const previous = clone(alert);
   alert.estado = normalizedStatus;
   alert.updatedAt = new Date().toISOString();
   alert.actualizadaPor = actor;
+  alert.motivoEstado = String(options.motivo || options.observaciones || "").trim();
 
   if (normalizedStatus === ALERT_STATUS.READ) {
     alert.leidaAt = alert.leidaAt || alert.updatedAt;
@@ -349,15 +464,26 @@ export function updateInternalAlertStatus(alertId, status, actor = "system") {
     alert.atendidaPor = alert.atendidaPor || actor;
   }
 
-  saveInternalAlerts(alerts);
-  auditAlert(
-    normalizedStatus === ALERT_STATUS.ATTENDED ? "atender_alerta_interna" : "marcar_alerta_leida",
-    alert,
-    actor,
-    normalizedStatus === ALERT_STATUS.ATTENDED ? "Se atendio la alerta interna." : "Se marco la alerta interna como leida.",
-    previous
-  );
+  if (normalizedStatus === ALERT_STATUS.DISMISSED) {
+    alert.descartadaAt = alert.descartadaAt || alert.updatedAt;
+    alert.descartadaPor = alert.descartadaPor || actor;
+  }
 
-  const task = listTasks().find((item) => item.id === alert.tareaId) || null;
-  return buildAlertView(alert, task);
+  saveInternalAlerts(alerts);
+
+  const action =
+    normalizedStatus === ALERT_STATUS.ATTENDED
+      ? "atender_alerta_interna"
+      : normalizedStatus === ALERT_STATUS.DISMISSED
+        ? "descartar_alerta_interna"
+        : "marcar_alerta_leida";
+  const description =
+    normalizedStatus === ALERT_STATUS.ATTENDED
+      ? "Se atendio la alerta interna."
+      : normalizedStatus === ALERT_STATUS.DISMISSED
+        ? "Se descarto la alerta interna."
+        : "Se marco la alerta interna como leida.";
+  auditAlert(action, alert, actor, description, previous);
+
+  return listCurrentInternalAlerts("system").find((item) => item.id === alert.id) || buildAlertView(alert, null);
 }
