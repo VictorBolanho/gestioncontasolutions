@@ -3206,6 +3206,8 @@ function alertsSection() {
   const visibleResponsibles = state.taskResponsibles
     .slice()
     .sort((left, right) => String(left.nombreCompleto || "").localeCompare(String(right.nombreCompleto || ""), "es"));
+  const canManageAlerts = hasPermission("gestionar_alertas");
+  const canReadAlerts = hasAnyPermission(["ver_alertas", "gestionar_alertas"]);
 
   return `
     <section class="panel-card">
@@ -3338,17 +3340,17 @@ function alertsSection() {
                     <td>
                       <div class="calendar-row-actions">
                         ${
-                          alert.estado === "no_leida"
+                          canReadAlerts && alert.estado === "no_leida"
                             ? `<button class="btn btn-secondary table-action" type="button" data-action="alert-status" data-alert-id="${escapeHtml(alert.id)}" data-alert-status="leida">Marcar leida</button>`
                             : ""
                         }
                         ${
-                          !isClosedAlert(alert)
+                          canManageAlerts && !isClosedAlert(alert)
                             ? `<button class="btn btn-secondary table-action" type="button" data-action="alert-status" data-alert-id="${escapeHtml(alert.id)}" data-alert-status="atendida">Atendida</button>`
                             : ""
                         }
                         ${
-                          !isClosedAlert(alert)
+                          canManageAlerts && !isClosedAlert(alert)
                             ? `<button class="btn btn-secondary table-action" type="button" data-action="alert-status" data-alert-id="${escapeHtml(alert.id)}" data-alert-status="descartada">Descartar</button>`
                             : '<span class="muted">Sin acciones</span>'
                         }

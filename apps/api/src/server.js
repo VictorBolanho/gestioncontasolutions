@@ -69,6 +69,7 @@ import {
   updateTaskWorkflowStage
 } from "./lib/task-service.js";
 import {
+  ALERT_STATUS,
   generateInternalAlerts,
   getInternalAlertById,
   listInternalAlertsForUser,
@@ -732,7 +733,7 @@ const server = http.createServer((request, response) => {
   }
 
   if (request.method === "PATCH" && /^\/api\/alerts\/[^/]+\/status$/.test(url.pathname)) {
-    if (!requireAnyPermission(response, currentUser, ["ver_alertas", "gestionar_alertas", "generar_tareas_fiscales", "gestionar_calendarios"])) {
+    if (!requireAnyPermission(response, currentUser, ["ver_alertas", "gestionar_alertas"])) {
       return;
     }
 
@@ -749,6 +750,16 @@ const server = http.createServer((request, response) => {
           return;
         }
         const payload = await readJsonBody(request);
+        const nextStatus = String(payload.estado || "").trim();
+        if (nextStatus === ALERT_STATUS.READ) {
+          if (!requireAnyPermission(response, currentUser, ["ver_alertas", "gestionar_alertas"])) {
+            return;
+          }
+        } else if ([ALERT_STATUS.ATTENDED, ALERT_STATUS.DISMISSED].includes(nextStatus)) {
+          if (!requirePermission(response, currentUser, "gestionar_alertas")) {
+            return;
+          }
+        }
         const result = updateInternalAlertStatus(alertId, payload.estado, currentUser.id, {
           motivo: payload.motivo || payload.observaciones || ""
         });

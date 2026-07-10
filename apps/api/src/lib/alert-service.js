@@ -322,6 +322,16 @@ function auditAlert(action, alert, actor, description, previous = null) {
   saveAudits(audits);
 }
 
+function auditRejectedAlertTransition(alert, actor, nextStatus) {
+  auditAlert(
+    "rechazar_transicion_alerta_invalida",
+    alert,
+    actor,
+    `Se rechazo la transicion de ${alert.estado} a ${nextStatus}.`,
+    clone(alert)
+  );
+}
+
 function buildAlertViews(alerts, tasks) {
   const taskMap = new Map(tasks.map((task) => [task.id, task]));
   return alerts
@@ -454,8 +464,8 @@ export function listInternalAlertsForUser(currentUser, filters = {}, actor = "sy
 }
 
 export function getInternalAlertById(alertId) {
-  const tasks = listTasks();
-  const alert = normalizeAndPersistAlerts().find((item) => item.id === alertId);
+  const { alerts, tasks } = reconcileAndPersistAlerts("system");
+  const alert = alerts.find((item) => item.id === alertId);
   return alert ? buildAlertView(alert, tasks.find((task) => task.id === alert.tareaId) || null) : null;
 }
 
@@ -472,6 +482,7 @@ export function updateInternalAlertStatus(alertId, status, actor = "system", opt
   }
 
   if (!canTransitionInternalAlert(alert.estado, normalizedStatus)) {
+    auditRejectedAlertTransition(alert, actor, normalizedStatus);
     throw createAlertError("La transicion de estado de la alerta no es valida.", 400);
   }
 
