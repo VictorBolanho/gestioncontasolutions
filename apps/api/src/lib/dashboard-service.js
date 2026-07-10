@@ -9,8 +9,7 @@ import {
   getCompanyObligations,
   getUsers
 } from "./storage.js";
-import { canUserAccessAlert } from "./alert-access.js";
-import { listCurrentInternalAlerts } from "./alert-service.js";
+import { listInternalAlertsForUser } from "./alert-service.js";
 import { listTasks } from "./task-service.js";
 
 const COMPLETED_STATUSES = new Set(["presentada", "completada"]);
@@ -278,7 +277,7 @@ export function buildDashboard(currentUser) {
   const companyMap = new Map(visibleCompanies.map((company) => [company.id, company]));
   const tasks = listTasks().filter((task) => visibleCompanyIds.has(task.empresaId) && taskVisibleToRole(task, currentUser));
   const obligations = getCompanyObligations().filter((obligation) => visibleCompanyIds.has(obligation.empresaId));
-  const alerts = listCurrentInternalAlerts("system").filter((alert) => visibleCompanyIds.has(alert.empresaId) && canUserAccessAlert(currentUser, alert));
+  const alerts = listInternalAlertsForUser(currentUser, {}, "system").filter((alert) => visibleCompanyIds.has(alert.empresaId));
   const users = getUsers();
   const userMap = new Map(users.map((user) => [user.id, user]));
   const { start, end } = currentMonthRange();

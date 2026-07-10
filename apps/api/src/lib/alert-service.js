@@ -7,6 +7,7 @@ import {
   saveInternalAlerts
 } from "./storage.js";
 import { listTasks } from "./task-service.js";
+import { canUserAccessAlert } from "./alert-access.js";
 
 export const ALERT_TYPES = Object.freeze({
   UPCOMING: "proxima_vencer",
@@ -67,6 +68,17 @@ function daysUntil(dateValue) {
 function normalizeAlertStatus(value) {
   const normalized = String(value || "").trim();
   return ALERT_STATUS_ALIASES[normalized] || normalized || ALERT_STATUS.UNREAD;
+}
+
+function normalizeAlertFilters(filters = {}) {
+  const rawStatus = String(filters.estado || "").trim();
+  return {
+    estado: rawStatus ? normalizeAlertStatus(rawStatus) : "",
+    tipo: String(filters.tipo || "").trim(),
+    nivel: String(filters.nivel || "").trim(),
+    empresaId: String(filters.empresaId || filters.companyId || "").trim(),
+    responsableId: String(filters.responsableId || filters.userId || "").trim()
+  };
 }
 
 function isActiveAlertStatus(status) {
@@ -404,14 +416,14 @@ export function generateInternalAlerts(actor = "system") {
 
 export function reconcileAndListInternalAlerts(filters = {}, actor = "system") {
   const { alerts, tasks } = reconcileAndPersistAlerts(actor);
-  const status = normalizeAlertStatus(filters.estado);
-  const type = String(filters.tipo || "").trim();
-  const level = String(filters.nivel || "").trim();
+  const normalizedFilters = normalizeAlertFilters(filters);
 
   const filteredAlerts = alerts.filter((alert) => {
-    if (status && alert.estado !== status) return false;
-    if (type && alert.tipo !== type) return false;
-    if (level && alert.nivel !== level) return false;
+    if (normalizedFilters.estado && alert.estado !== normalizedFilters.estado) return false;
+    if (normalizedFilters.tipo && alert.tipo !== normalizedFilters.tipo) return false;
+    if (normalizedFilters.nivel && alert.nivel !== normalizedFilters.nivel) return false;
+    if (normalizedFilters.empresaId && alert.empresaId !== normalizedFilters.empresaId) return false;
+    if (normalizedFilters.responsableId && alert.responsableId !== normalizedFilters.responsableId) return false;
     return true;
   });
 
@@ -424,6 +436,21 @@ export function listInternalAlerts(filters = {}) {
 
 export function listCurrentInternalAlerts(actor = "system") {
   return reconcileAndListInternalAlerts({}, actor);
+}
+
+export function listInternalAlertsForUser(currentUser, filters = {}, actor = "system") {
+  const normalizedFilters = normalizeAlertFilters(filters);
+
+  return reconcileAndListInternalAlerts({}, actor)
+    .filter((alert) => canUserAccessAlert(currentUser, alert))
+    .filter((alert) => {
+      if (normalizedFilters.estado && alert.estado !== normalizedFilters.estado) return false;
+      if (normalizedFilters.tipo && alert.tipo !== normalizedFilters.tipo) return false;
+      if (normalizedFilters.nivel && alert.nivel !== normalizedFilters.nivel) return false;
+      if (normalizedFilters.empresaId && alert.empresaId !== normalizedFilters.empresaId) return false;
+      if (normalizedFilters.responsableId && alert.responsableId !== normalizedFilters.responsableId) return false;
+      return true;
+    });
 }
 
 export function getInternalAlertById(alertId) {

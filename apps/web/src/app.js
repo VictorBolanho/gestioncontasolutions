@@ -209,6 +209,8 @@ const state = {
     operationalDueKind: "",
     operationalTaskType: "",
     operationalClientRisk: "",
+    alertCompanyId: "",
+    alertResponsibleId: "",
     alertState: "",
     alertType: "",
     alertLevel: ""
@@ -825,6 +827,8 @@ async function refreshFiscalTasks() {
 
 async function refreshInternalAlerts() {
   const params = new URLSearchParams();
+  if (state.fiscalFilters.alertCompanyId) params.set("empresaId", state.fiscalFilters.alertCompanyId);
+  if (state.fiscalFilters.alertResponsibleId) params.set("responsableId", state.fiscalFilters.alertResponsibleId);
   if (state.fiscalFilters.alertState) params.set("estado", state.fiscalFilters.alertState);
   if (state.fiscalFilters.alertType) params.set("tipo", state.fiscalFilters.alertType);
   if (state.fiscalFilters.alertLevel) params.set("nivel", state.fiscalFilters.alertLevel);
@@ -2014,6 +2018,14 @@ function isClosedAlert(alert) {
   return ["atendida", "descartada"].includes(String(alert?.estado || ""));
 }
 
+function clearAlertFilters() {
+  state.fiscalFilters.alertCompanyId = "";
+  state.fiscalFilters.alertResponsibleId = "";
+  state.fiscalFilters.alertState = "";
+  state.fiscalFilters.alertType = "";
+  state.fiscalFilters.alertLevel = "";
+}
+
 function renderTaskActionIcon(icon) {
   const icons = {
     play:
@@ -3188,6 +3200,12 @@ function alertsSection() {
   const dianAlertCount = state.internalAlerts.filter(
     (alert) => !isClosedAlert(alert) && alert.tarea?.tipoTarea === "cumplimiento_dian"
   ).length;
+  const visibleCompanies = state.companies
+    .slice()
+    .sort((left, right) => String(left.razonSocial || "").localeCompare(String(right.razonSocial || ""), "es"));
+  const visibleResponsibles = state.taskResponsibles
+    .slice()
+    .sort((left, right) => String(left.nombreCompleto || "").localeCompare(String(right.nombreCompleto || ""), "es"));
 
   return `
     <section class="panel-card">
@@ -3217,8 +3235,32 @@ function alertsSection() {
       </div>
       ${renderAppFilterCard({
         title: "Filtros de alertas",
-        description: "Filtra por estado, tipo y nivel para concentrarte en los vencimientos y riesgos mas importantes.",
+        description: "Filtra por empresa, responsable, tipo, prioridad y estado sin salir del alcance visible de tu usuario.",
         fields: `
+          <label class="app-filter-field">
+            <span class="app-filter-label">Empresa</span>
+            <select class="app-filter-select" data-filter="alertCompanyId">
+              <option value="">Todas</option>
+              ${visibleCompanies
+                .map(
+                  (company) =>
+                    `<option value="${company.id}" ${company.id === state.fiscalFilters.alertCompanyId ? "selected" : ""}>${escapeHtml(company.razonSocial || company.id)}</option>`
+                )
+                .join("")}
+            </select>
+          </label>
+          <label class="app-filter-field">
+            <span class="app-filter-label">Responsable</span>
+            <select class="app-filter-select" data-filter="alertResponsibleId">
+              <option value="">Todos</option>
+              ${visibleResponsibles
+                .map(
+                  (user) =>
+                    `<option value="${user.id}" ${user.id === state.fiscalFilters.alertResponsibleId ? "selected" : ""}>${escapeHtml(user.nombreCompleto || user.email || user.id)}</option>`
+                )
+                .join("")}
+            </select>
+          </label>
           <label class="app-filter-field">
             <span class="app-filter-label">Estado</span>
             <select class="app-filter-select" data-filter="alertState">
@@ -3240,7 +3282,7 @@ function alertsSection() {
             </select>
           </label>
           <label class="app-filter-field">
-            <span class="app-filter-label">Nivel</span>
+            <span class="app-filter-label">Prioridad</span>
             <select class="app-filter-select" data-filter="alertLevel">
               <option value="">Todos</option>
               ${ALERT_LEVEL_OPTIONS.map(
@@ -3250,7 +3292,12 @@ function alertsSection() {
             </select>
           </label>
         `,
-        gridClass: "app-filter-grid app-filter-grid-triple"
+        actions: `
+          <button class="btn btn-secondary app-filter-button" type="button" data-action="clear-alert-filters">
+            Limpiar filtros
+          </button>
+        `,
+        gridClass: "app-filter-grid app-filter-grid-wide"
       })}
       <div class="table-card calendar-table-card">
         <table>
@@ -8509,11 +8556,25 @@ function bindEvents() {
     });
   });
 
+  document.querySelectorAll('[data-action="clear-alert-filters"]').forEach((button) => {
+    button.addEventListener("click", async () => {
+      clearAlertFilters();
+
+      try {
+        await refreshInternalAlerts();
+      } catch (error) {
+        state.calendarMessage = toUserMessage(error, "No se pudieron limpiar los filtros de alertas.");
+      }
+
+      render();
+    });
+  });
+
   document.querySelectorAll("[data-filter]").forEach((control) => {
     control.addEventListener("change", async () => {
       const filterName = control.getAttribute("data-filter");
       state.fiscalFilters[filterName] = control.value;
-      if (["alertState", "alertType", "alertLevel"].includes(filterName)) {
+      if (["alertCompanyId", "alertResponsibleId", "alertState", "alertType", "alertLevel"].includes(filterName)) {
         try {
           await refreshInternalAlerts();
         } catch (error) {

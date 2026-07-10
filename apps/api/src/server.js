@@ -71,7 +71,7 @@ import {
 import {
   generateInternalAlerts,
   getInternalAlertById,
-  listInternalAlerts,
+  listInternalAlertsForUser,
   updateInternalAlertStatus
 } from "./lib/alert-service.js";
 import { canUserAccessAlert } from "./lib/alert-access.js";
@@ -707,11 +707,13 @@ const server = http.createServer((request, response) => {
     const filters = {
       estado: url.searchParams.get("estado") || "",
       tipo: url.searchParams.get("tipo") || "",
-      nivel: url.searchParams.get("nivel") || ""
+      nivel: url.searchParams.get("nivel") || "",
+      empresaId: url.searchParams.get("empresaId") || url.searchParams.get("companyId") || "",
+      responsableId: url.searchParams.get("responsableId") || url.searchParams.get("userId") || ""
     };
 
     sendJson(response, 200, {
-      items: listInternalAlerts(filters).filter((alert) => canUserAccessAlert(currentUser, alert))
+      items: listInternalAlertsForUser(currentUser, filters, currentUser.id)
     });
     return;
   }
