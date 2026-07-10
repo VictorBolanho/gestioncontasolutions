@@ -7,9 +7,10 @@ import {
 import {
   getCompanies,
   getCompanyObligations,
-  getInternalAlerts,
   getUsers
 } from "./storage.js";
+import { canUserAccessAlert } from "./alert-access.js";
+import { listCurrentInternalAlerts } from "./alert-service.js";
 import { listTasks } from "./task-service.js";
 
 const COMPLETED_STATUSES = new Set(["presentada", "completada"]);
@@ -49,23 +50,8 @@ function taskVisibleToRole(task, currentUser) {
   return false;
 }
 
-function alertVisibleToRole(alert, currentUser) {
-  const primaryRole = getPrimaryRole(currentUser);
-  const supervisedUsers = new Set(Array.isArray(currentUser?.supervisedUsers) ? currentUser.supervisedUsers : []);
-
-  if (["owner", "administrador", "gerente"].includes(primaryRole)) {
-    return true;
-  }
-
-  if (["senior_accountant", "supervisor"].includes(primaryRole)) {
-    return alert.responsableId === currentUser?.id || supervisedUsers.has(alert.responsableId);
-  }
-
-  if (["junior_accountant", "operativo_medio", "operativo_basico", "apprentice"].includes(primaryRole)) {
-    return alert.responsableId === currentUser?.id;
-  }
-
-  return false;
+function isAlertOpen(alert) {
+  return !["atendida", "descartada"].includes(String(alert?.estado || ""));
 }
 
 function today() {
@@ -248,7 +234,7 @@ function buildOperationsCenter(tasks, companyMap, userMap, currentDate = today()
 
 function buildCompanyRisk(company, tasks, alerts) {
   const companyTasks = tasks.filter((task) => task.empresaId === company.id);
-  const companyAlerts = alerts.filter((alert) => alert.empresaId === company.id && alert.estado !== "atendida");
+  const companyAlerts = alerts.filter((alert) => alert.empresaId === company.id && isAlertOpen(alert));
   const overdueTasks = companyTasks.filter((task) => taskStatus(task) === "vencida").length;
   const upcomingTasks = companyTasks.filter((task) => isUpcomingTask(task)).length;
   const criticalAlerts = companyAlerts.filter((alert) => alert.nivel === "critica").length;
@@ -271,7 +257,7 @@ function buildUserLoad(user, visibleCompanyIds, tasks, alerts) {
     ? user.empresasAsignadas.filter((companyId) => visibleCompanyIds.has(companyId))
     : [];
   const userTasks = tasks.filter((task) => task.responsableId === user.id);
-  const userAlerts = alerts.filter((alert) => alert.responsableId === user.id && alert.estado !== "atendida");
+  const userAlerts = alerts.filter((alert) => alert.responsableId === user.id && isAlertOpen(alert));
 
   return {
     usuarioId: user.id,
@@ -292,7 +278,7 @@ export function buildDashboard(currentUser) {
   const companyMap = new Map(visibleCompanies.map((company) => [company.id, company]));
   const tasks = listTasks().filter((task) => visibleCompanyIds.has(task.empresaId) && taskVisibleToRole(task, currentUser));
   const obligations = getCompanyObligations().filter((obligation) => visibleCompanyIds.has(obligation.empresaId));
-  const alerts = getInternalAlerts().filter((alert) => visibleCompanyIds.has(alert.empresaId) && alertVisibleToRole(alert, currentUser));
+  const alerts = listCurrentInternalAlerts("system").filter((alert) => visibleCompanyIds.has(alert.empresaId) && canUserAccessAlert(currentUser, alert));
   const users = getUsers();
   const userMap = new Map(users.map((user) => [user.id, user]));
   const { start, end } = currentMonthRange();
@@ -337,8 +323,8 @@ export function buildDashboard(currentUser) {
       tareasEnProceso: tasks.filter((task) => taskStatus(task) === "en_proceso").length,
       tareasCompletadasPresentadas: completedTasks.length,
       tareasVencidas: overdueTasks.length,
-      alertasPreventivas: alerts.filter((alert) => alert.nivel === "preventiva" && alert.estado !== "atendida").length,
-      alertasCriticas: alerts.filter((alert) => alert.nivel === "critica" && alert.estado !== "atendida").length
+      alertasPreventivas: alerts.filter((alert) => alert.nivel === "preventiva" && isAlertOpen(alert)).length,
+      alertasCriticas: alerts.filter((alert) => alert.nivel === "critica" && isAlertOpen(alert)).length
     },
     currentMonth: {
       tareasVencidas: monthOverdueTasks.length,
@@ -356,7 +342,7 @@ export function buildDashboard(currentUser) {
       cumplimientoMesActual: percent(monthCompletedTasks.length, monthTasks.length)
     },
     criticalAlerts: alerts
-      .filter((alert) => alert.nivel === "critica" && alert.estado !== "atendida")
+      .filter((alert) => alert.nivel === "critica" && isAlertOpen(alert))
       .sort((left, right) => String(left.fechaVencimiento || "").localeCompare(String(right.fechaVencimiento || "")))
       .slice(0, 10)
       .map((alert) => ({
