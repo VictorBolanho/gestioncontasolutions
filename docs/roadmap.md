@@ -56,7 +56,7 @@ Incluye:
 - asignacion manual de impuestos a empresas;
 - calendario operativo por fechas;
 - calendarios versionados;
-- generacion preliminar de tareas fiscales;
+- generacion de tareas fiscales;
 - control de no duplicacion;
 - auditoria de calendario y tareas.
 
@@ -64,7 +64,7 @@ Incluye:
 
 Estado: completada.
 
-Objetivo propuesto:
+Incluye:
 
 - usuarios internos;
 - roles y permisos;
@@ -72,9 +72,7 @@ Objetivo propuesto:
 - seguridad operativa;
 - base para panel general de tareas.
 
-## Fases posteriores
-
-### Fase 5
+### Fase 5 - Gestion integral de tareas fiscales y no fiscales
 
 Estado: completada.
 
@@ -87,19 +85,60 @@ Incluye:
 - seguimiento, cierre y filtros operativos;
 - auditoria de cambios de estado, reasignaciones y cierre.
 
-### Fases 6 y 7
+### Fase 6 - Alertas internas y vencimientos
 
-- alertas internas;
-- correos;
-- dashboard gerencial e indicadores.
+Estado: completada.
 
-### Fases 8 a 10
+Incluye:
+
+- alertas internas por tareas vencidas o proximas a vencer;
+- estados `no_leida`, `leida`, `atendida` y `descartada`;
+- motivo opcional en atencion y descarte;
+- filtros por empresa, responsable, tipo, nivel y estado;
+- reconciliacion unica de alertas vigente para listado y dashboard;
+- visibilidad por rol y alcance compartida entre tareas, alertas y dashboard;
+- auditoria de lectura, atencion, descarte y rechazo de transicion invalida;
+- cobertura operativa oficial desde tarea fiscal, no desde obligacion directa.
+
+## Fases posteriores
+
+### Fase 7 - Dashboard gerencial, reportes e indicadores
+
+Estado: pendiente.
+
+Objetivo propuesto:
+
+- ampliar el dashboard operativo actual a una capa gerencial estable;
+- separar tableros por perfil ejecutivo, supervisor y usuario;
+- crear reportes y exportables confiables sobre tareas, alertas y cumplimiento;
+- mantener una unica fuente de verdad para alertas y cargas operativas.
+
+### Fase 8
+
+Estado: pendiente.
 
 - configuracion general;
+- reglas editables del sistema;
+- ajustes operativos sin tocar codigo.
+
+### Fase 9
+
+Estado: pendiente.
+
 - portal cliente;
-- solicitudes de documentos e informacion.
+- acceso limitado por empresa;
+- visualizacion compartida y carga de soportes.
+
+### Fase 10
+
+Estado: pendiente.
+
+- solicitudes de documentos e informacion al cliente;
+- trazabilidad de entrega, revision y aprobacion.
 
 ### Fase 11
+
+Estado: pendiente.
 
 - auditoria ampliada;
 - seguridad;

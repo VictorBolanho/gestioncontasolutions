@@ -99,20 +99,26 @@ Permisos relevantes:
 - `gestionar_impuestos`
 - `gestionar_calendarios`
 - `generar_tareas_fiscales`
+- `ver_alertas`
+- `gestionar_alertas`
+- `ver_dashboard_general`
 - `ver_modulo_usuarios`
 - `crear_usuarios`
 - `editar_usuarios`
 - `asignar_permisos`
-- `ver_dashboard_general`
 - `ver_todas_empresas`
 
-### 3.6 Acceso por empresa
+### 3.6 Acceso por empresa y rol
 
 Acciones del sistema:
 
 - si el usuario tiene `ver_todas_empresas`, puede ver todo
 - si no, solo puede operar sobre `empresasAsignadas`
-- esta validacion se aplica al consultar empresa, tareas, alertas y responsables
+- supervisores y seniors pueden ver empresas y tareas de su equipo supervisado
+- juniors y profesionales ven sus tareas y el alcance permitido por asignacion
+- aprendices solo ven sus tareas visibles
+- cliente no accede al modulo de alertas internas
+- esta validacion compartida se aplica al consultar empresa, tareas, alertas, responsables y dashboard
 
 ## 4. Gestion de usuarios
 
@@ -455,6 +461,7 @@ Acciones del sistema:
 
 - permite cambiar impuesto, nivel, ubicacion, periodicidad, estado, motivo y observaciones
 - vuelve a validar duplicados y campos obligatorios
+- cuando la obligacion pasa a `activa`, intenta generar tareas fiscales aplicables
 - registra auditoria `editar_obligacion_empresa`
 
 ### 11.4 Confirmar, revisar o marcar no aplica
@@ -476,6 +483,7 @@ Acciones:
 Regla clave:
 
 - para confirmar una obligacion, la empresa debe estar activa
+- la obligacion no genera alerta directa; su salida operativa es una tarea fiscal cuando existe calendario aplicable
 
 ## 12. Calendarios fiscales
 
@@ -532,6 +540,7 @@ Regla importante:
 Acciones del sistema:
 
 - cambia estado de `borrador` o `validado` a `activo`
+- dispara generacion de tareas fiscales aplicables
 - registra auditoria
 
 ### 12.4 Anular calendario
@@ -554,6 +563,8 @@ Acciones del sistema:
 - marca el anterior como `reemplazado`
 - crea una nueva version
 - guarda snapshot anterior y nuevo en `fiscal-calendar-versions.json`
+- reprograma tareas abiertas cuando la nueva fecha realmente cambia
+- marca como `no_aplica` las tareas que dejan de corresponder
 - mantiene trazabilidad historica
 
 ## 13. Generacion de tareas fiscales
@@ -599,7 +610,16 @@ Evita generar dos veces la misma tarea por combinacion de:
 - periodo
 - anio
 
-### 13.5 Resultado
+### 13.5 Reprogramacion y cobertura
+
+Reglas adicionales:
+
+- activar una obligacion puede disparar generacion si el calendario ya estaba activo
+- activar un calendario puede generar tareas para obligaciones activas previas
+- reemplazar un calendario puede actualizar tareas abiertas sin tocar historicos cerrados
+- una tarea fiscal cerrada no se reabre por simple reconciliacion si la condicion no cambio
+
+### 13.6 Resultado
 
 Cada tarea fiscal guarda:
 
@@ -677,15 +697,16 @@ Solo admite cierre como:
 Registra:
 
 - fecha de cierre
-- usuario que cerró
+- usuario que cerro
 - auditoria `cerrar_tarea`
 
-### 14.5 Vencimiento automatico
+### 14.5 Vencimiento automatico y reactivacion
 
 Cada vez que se listan tareas, el sistema:
 
 - revisa fecha de vencimiento
 - si ya vencio y no esta cerrada, la marca como `vencida`
+- si una reprogramacion mueve la fecha al futuro, reabre el estado operativo correspondiente
 - registra auditoria automatica
 
 ## 15. Controles DIAN
@@ -734,51 +755,104 @@ El sistema muestra:
 
 ## 16. Alertas internas
 
-### 16.1 Generacion
+### 16.1 Fuente operativa oficial
 
 El sistema genera alertas desde tareas.
+
+Regla clave:
+
+- una obligacion fiscal no crea alerta directa
+- la obligacion debe traducirse primero en tarea fiscal
+- la tarea fiscal o de cumplimiento es la fuente oficial de la alerta vigente
+
+### 16.2 Casos de generacion
 
 Casos:
 
 - tarea vencida
 - tarea proxima a vencer en 7 dias
 
-### 16.2 Diferenciacion de controles DIAN
+### 16.3 Reconciliacion unica
 
-Para tareas `cumplimiento_dian`:
+El sistema usa una sola reconciliacion para:
 
-- el mensaje nombra explicitamente `control DIAN`
-- si vence en 0 a 2 dias, puede escalar a critica
+- generar alertas nuevas sin duplicar
+- actualizar mensaje, nivel y `conditionHash`
+- cerrar automaticamente alertas activas cuando la tarea deja de requerirlas
+- servir `GET /api/alerts`
+- alimentar `GET /api/dashboard`
 
-### 16.3 Sincronizacion
+### 16.4 `conditionHash`
 
-Cuando cambia una tarea:
+La condicion operativa se calcula con:
 
-- la alerta puede actualizarse
-- puede cerrarse automaticamente si ya no aplica
-- puede regenerarse si reaparece la condicion
+- `tareaId`
+- `tipo`
+- `nivel`
+- `fechaVencimiento`
 
-### 16.4 Estados de alerta
+Reglas:
+
+- si la fecha real no cambia, la condicion sigue siendo la misma
+- si la fecha real cambia por reprogramacion o reemplazo de calendario, nace una nueva condicion
+- una alerta `atendida` o `descartada` no reaparece para la misma condicion
+- una nueva condicion si puede generar una nueva alerta
+
+### 16.5 Estados de alerta
 
 - `no_leida`
 - `leida`
 - `atendida`
+- `descartada`
 
-### 16.5 Acciones de usuario
+### 16.6 Acciones de usuario
 
 - marcar como leida
 - marcar como atendida
+- marcar como descartada
+- registrar motivo opcional al atender o descartar
+
+### 16.7 Permisos y alcance
+
+Reglas:
+
+- `GET /api/alerts` exige `ver_alertas` o `gestionar_alertas`
+- marcar `leida` exige que la alerta este dentro del alcance del usuario y permiso de visualizacion
+- marcar `atendida` o `descartada` exige `gestionar_alertas`
+- el rol `cliente` no usa alertas internas
+- filtros nunca amplian alcance; primero se aplica visibilidad y luego filtros
+
+### 16.8 Filtros
+
+Filtros soportados:
+
+- `empresaId`
+- `responsableId`
+- `tipo`
+- `nivel`
+- `estado`
+
+### 16.9 Persistencia y auditoria
 
 Persistencia:
 
 - guarda en `internal-alerts.json`
-- registra auditoria por generacion, actualizacion y cierre
+- registra auditoria por generacion, actualizacion, lectura, atencion, descarte y rechazo de transicion invalida
 
 ## 17. Dashboard operativo
 
 El dashboard consolida informacion visible para el usuario segun sus permisos.
 
-Resumen principal:
+### 17.1 Fuente de datos
+
+El dashboard:
+
+- usa tareas visibles por la misma logica compartida de acceso
+- usa alertas reconciliadas desde `listInternalAlertsForUser`
+- excluye alertas terminales de contadores activos
+- mantiene sincronizacion con el listado de alertas
+
+### 17.2 Resumen principal
 
 - empresas activas
 - obligaciones fiscales activas
@@ -789,7 +863,7 @@ Resumen principal:
 - alertas preventivas
 - alertas criticas
 
-Vista del mes actual:
+### 17.3 Vista del mes actual
 
 - tareas vencidas del mes
 - tareas completadas del mes
@@ -797,12 +871,13 @@ Vista del mes actual:
 - tareas fiscales del mes
 - empresas con riesgo operativo
 
-Analitica adicional:
+### 17.4 Analitica adicional
 
 - riesgo por empresa
 - carga por usuario
 - porcentaje de cumplimiento
 - top de alertas criticas
+- centro de operaciones con colas abiertas
 
 ## 18. Auditoria
 
@@ -826,10 +901,15 @@ Ejemplos:
 - activar calendario
 - reemplazar calendario
 - generar tareas fiscales
+- reprogramar tarea fiscal por reemplazo
 - crear tarea manual
 - reasignar tarea
 - generar control DIAN
 - generar alerta
+- marcar alerta como leida
+- atender alerta
+- descartar alerta
+- rechazar transicion invalida
 
 Cada auditoria puede guardar:
 
@@ -872,7 +952,23 @@ La implementacion actual todavia tiene estas fronteras:
 - no existe aun un modulo formal de exportacion avanzada de reportes
 - no hay bitacora visual completa de versiones de empresa, aunque si hay auditoria
 
-## 21. Conclusión operativa
+## 21. Pruebas de cierre de Fase 6
+
+La validacion funcional de cierre incluye:
+
+- onboarding limpio sin alertas ni dashboard contaminado
+- permisos de modulos por rol
+- permisos de dashboard y alcance visible
+- consistencia de estados de alerta
+- filtros por empresa, responsable, tipo, nivel y estado
+- lectura, atencion y descarte con permisos correctos
+- cobertura de obligacion activa, calendario activo y tarea fiscal generada
+- reprogramacion por reemplazo de calendario
+- `conditionHash` estable sin cambio real y renovado cuando cambia el vencimiento
+- sincronizacion entre listado de alertas y dashboard
+- smoke test general del sistema
+
+## 22. Conclusion operativa
 
 Hoy el sistema ya cubre un flujo serio de operacion:
 
@@ -885,7 +981,7 @@ Hoy el sistema ya cubre un flujo serio de operacion:
 - arma calendarios
 - genera tareas fiscales
 - genera controles DIAN
-- produce alertas
-- consolida indicadores
+- produce alertas reconciliadas
+- consolida indicadores operativos
 
-Eso lo convierte en una base funcional para operar clientes tributarios con trazabilidad y revision humana antes de automatizar decisiones sensibles.
+Eso lo convierte en una base funcional para operar clientes tributarios con trazabilidad y revision humana antes de automatizar decisiones sensibles o abrir nuevos canales de notificacion.

@@ -114,6 +114,21 @@ Incluye:
 - filtros por estado, empresa, responsable, vencimiento y tipo;
 - auditoria de generacion, creacion, reasignacion, cambio de estado y cierre.
 
+### Fase 6 - Alertas internas y vencimientos
+
+Estado: completada.
+
+Incluye:
+
+- alertas internas por tareas vencidas o proximas a vencer;
+- estados `no_leida`, `leida`, `atendida` y `descartada`;
+- motivo opcional al atender o descartar;
+- filtros por empresa, responsable, tipo, nivel y estado;
+- reconciliacion unica de alertas para listado y dashboard;
+- visibilidad compartida por rol y alcance autorizado;
+- auditoria de lectura, atencion, descarte y rechazo de transicion invalida;
+- integracion real con dashboard operativo.
+
 ## Estructura
 
 - `apps/api`: servidor API HTTP en Node nativo.
@@ -258,6 +273,10 @@ node scripts/reset-fiscal-data.js --confirm --keep-calendar-seeds
 - `PATCH /api/tasks/:id/assign`
 - `PATCH /api/tasks/:id/close`
 - `GET /api/task-responsibles`
+- `GET /api/alerts`
+- `POST /api/alerts/generate`
+- `PATCH /api/alerts/:id/status`
+- `GET /api/dashboard`
 - `GET /api/users`
 - `POST /api/users`
 - `PATCH /api/users/:id`
@@ -279,7 +298,9 @@ node scripts/reset-fiscal-data.js --confirm --keep-calendar-seeds
 13. Crear tareas no fiscales manuales si aplica.
 14. Asignar responsable, iniciar, cerrar o cancelar tareas.
 15. Iniciar sesion segun rol y validar acceso.
-16. Verificar que no se dupliquen tareas.
+16. Generar o reconciliar alertas internas.
+17. Revisar dashboard operativo.
+18. Verificar que no se dupliquen tareas ni alertas.
 
 ## Reglas importantes
 
@@ -308,12 +329,13 @@ node scripts/reset-fiscal-data.js --confirm --keep-calendar-seeds
 - Extraccion RUT basada en texto PDF, no OCR completo.
 - Catalogo de impuestos editable, pero aun sin importacion masiva.
 - Calendario fiscal manual y semilla base; sin importacion DIAN/municipal automatizada.
-- No existe dashboard real todavia.
+- Ya existe dashboard operativo conectado a tareas y alertas reconciliadas.
 - No existe portal cliente todavia.
 - La persistencia de usuarios y sesiones sigue siendo local en JSON.
+- El envio real de correo sigue fuera del alcance actual.
 
 ## Que queda pendiente
 
 Siguiente fase recomendada:
 
-- Fase 6: alertas internas y vencimientos proximos.
+- Fase 7: dashboard gerencial, reportes e indicadores sobre la base operativa actual.
