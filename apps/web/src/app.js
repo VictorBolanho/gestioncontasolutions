@@ -216,7 +216,16 @@ const state = {
     alertLevel: ""
   },
   reportFilters: {
-    companyId: ""
+    companyId: "",
+    dateFrom: "",
+    dateTo: "",
+    responsibleId: "",
+    taskStatus: "",
+    taxId: "",
+    riskLevel: "",
+    fiscalPeriod: "",
+    view: "",
+    reportType: "cumplimiento"
   },
   showTextModal: false,
   advancedOpen: false
@@ -843,7 +852,18 @@ async function refreshDashboard() {
   render();
 
   try {
-    state.dashboardData = await fetchJson("/api/dashboard");
+    const params = new URLSearchParams();
+    if (state.reportFilters.companyId) params.set("empresaId", state.reportFilters.companyId);
+    if (state.reportFilters.dateFrom) params.set("fechaDesde", state.reportFilters.dateFrom);
+    if (state.reportFilters.dateTo) params.set("fechaHasta", state.reportFilters.dateTo);
+    if (state.reportFilters.responsibleId) params.set("responsableId", state.reportFilters.responsibleId);
+    if (state.reportFilters.taskStatus) params.set("estadoTarea", state.reportFilters.taskStatus);
+    if (state.reportFilters.taxId) params.set("impuestoId", state.reportFilters.taxId);
+    if (state.reportFilters.riskLevel) params.set("nivelRiesgo", state.reportFilters.riskLevel);
+    if (state.reportFilters.fiscalPeriod) params.set("periodoFiscal", state.reportFilters.fiscalPeriod);
+    if (state.reportFilters.view) params.set("vista", state.reportFilters.view);
+    const query = params.toString();
+    state.dashboardData = await fetchJson(`/api/dashboard${query ? `?${query}` : ""}`);
   } catch (error) {
     state.dashboardError = toUserMessage(error, "No se pudo cargar el dashboard.");
   } finally {
@@ -6051,6 +6071,16 @@ function dashboardSection() {
   const riskByCompany = Array.isArray(dashboard.riskByCompany) ? dashboard.riskByCompany : [];
   const workloadByUser = Array.isArray(dashboard.workloadByUser) ? dashboard.workloadByUser : [];
   const criticalAlerts = Array.isArray(dashboard.criticalAlerts) ? dashboard.criticalAlerts : [];
+  const managementAlerts = dashboard.managementAlerts || {};
+  const deadlines = dashboard.deadlines || {};
+  const filterOptions = dashboard.filterOptions || {};
+  const filterCompanies = Array.isArray(filterOptions.empresas) ? filterOptions.empresas : [];
+  const filterResponsibles = Array.isArray(filterOptions.responsables) ? filterOptions.responsables : [];
+  const filterTaxes = Array.isArray(filterOptions.impuestos) ? filterOptions.impuestos : [];
+  const filterPeriods = Array.isArray(filterOptions.periodosFiscales) ? filterOptions.periodosFiscales : [];
+  const filterViews = Array.isArray(filterOptions.vistas) ? filterOptions.vistas : [];
+  const filterRiskLevels = Array.isArray(filterOptions.nivelesRiesgo) ? filterOptions.nivelesRiesgo : [];
+  const filterTaskStates = Array.isArray(filterOptions.estadosTarea) ? filterOptions.estadosTarea : [];
   const topRiskCompanies = riskByCompany.slice(0, 4);
   const topCriticalAlerts = criticalAlerts.slice(0, 3);
   const dashboardVariant = state.currentUser?.dashboardView || "sin_dashboard";
@@ -6073,6 +6103,16 @@ function dashboardSection() {
       : dashboardVariant === "supervisor"
         ? "Visibilidad de tu equipo, empresas asignadas y prioridades operativas."
         : "Seguimiento de tus pendientes, alertas visibles y carga actual.";
+  const overdueAge = deadlines.tareasVencidasPorAntiguedad || {};
+  const multipleAlerts = Array.isArray(managementAlerts.empresasConMultiplesAlertasActivas)
+    ? managementAlerts.empresasConMultiplesAlertasActivas
+    : [];
+  const missingTaskAlerts = Array.isArray(managementAlerts.obligacionesActivasSinTareaFiscal)
+    ? managementAlerts.obligacionesActivasSinTareaFiscal
+    : [];
+  const upcomingWithoutResponsible = Array.isArray(managementAlerts.tareasProximasSinResponsable)
+    ? managementAlerts.tareasProximasSinResponsable
+    : [];
 
   return `
     <section class="panel-card dashboard-shell">
@@ -6084,11 +6124,102 @@ function dashboardSection() {
         <button class="btn btn-primary" type="button" data-action="refresh-dashboard">Actualizar</button>
       </div>
 
+      <section class="panel-card" style="margin-bottom: 20px;">
+        <div class="panel-header">
+          <div>
+            <div class="eyebrow">Filtros gerenciales</div>
+            <h4 class="section-title compact">Mismo alcance para dashboard y reportes</h4>
+          </div>
+        </div>
+        <div class="app-filter-grid app-filter-grid-report">
+          <label class="app-filter-field app-filter-field-tax">
+            <span class="app-filter-label">Desde</span>
+            <input class="app-filter-input" type="date" data-dashboard-filter="dateFrom" value="${escapeHtml(state.reportFilters.dateFrom || "")}" />
+          </label>
+          <label class="app-filter-field app-filter-field-tax">
+            <span class="app-filter-label">Hasta</span>
+            <input class="app-filter-input" type="date" data-dashboard-filter="dateTo" value="${escapeHtml(state.reportFilters.dateTo || "")}" />
+          </label>
+          <label class="app-filter-field app-filter-field-tax">
+            <span class="app-filter-label">Empresa</span>
+            <select class="app-filter-select" data-dashboard-filter="companyId">
+              <option value="">Todas</option>
+              ${filterCompanies.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === state.reportFilters.companyId ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}
+            </select>
+          </label>
+          <label class="app-filter-field app-filter-field-tax">
+            <span class="app-filter-label">Responsable</span>
+            <select class="app-filter-select" data-dashboard-filter="responsibleId">
+              <option value="">Todos</option>
+              ${filterResponsibles.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === state.reportFilters.responsibleId ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}
+            </select>
+          </label>
+          <label class="app-filter-field app-filter-field-tax">
+            <span class="app-filter-label">Estado</span>
+            <select class="app-filter-select" data-dashboard-filter="taskStatus">
+              <option value="">Todos</option>
+              ${filterTaskStates.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === state.reportFilters.taskStatus ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}
+            </select>
+          </label>
+          <label class="app-filter-field app-filter-field-tax">
+            <span class="app-filter-label">Obligacion / impuesto</span>
+            <select class="app-filter-select" data-dashboard-filter="taxId">
+              <option value="">Todas</option>
+              ${filterTaxes.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === state.reportFilters.taxId ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}
+            </select>
+          </label>
+          <label class="app-filter-field app-filter-field-tax">
+            <span class="app-filter-label">Riesgo</span>
+            <select class="app-filter-select" data-dashboard-filter="riskLevel">
+              <option value="">Todos</option>
+              ${filterRiskLevels.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === state.reportFilters.riskLevel ? "selected" : ""}>${escapeHtml(formatStatus(item.label))}</option>`).join("")}
+            </select>
+          </label>
+          <label class="app-filter-field app-filter-field-tax">
+            <span class="app-filter-label">Periodo fiscal</span>
+            <select class="app-filter-select" data-dashboard-filter="fiscalPeriod">
+              <option value="">Todos</option>
+              ${filterPeriods.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === state.reportFilters.fiscalPeriod ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}
+            </select>
+          </label>
+          <label class="app-filter-field app-filter-field-tax">
+            <span class="app-filter-label">Vista</span>
+            <select class="app-filter-select" data-dashboard-filter="view">
+              ${filterViews.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === state.reportFilters.view ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+        <div class="panel-actions" style="margin-top: 14px;">
+          <button class="btn btn-primary" type="button" data-action="apply-dashboard-filters">Aplicar filtros</button>
+          <button class="btn btn-secondary" type="button" data-action="clear-dashboard-filters">Limpiar filtros</button>
+        </div>
+      </section>
+
       <section class="dashboard-kpi-grid">
         ${dashboardMetricCard("Empresas activas", summary.empresasActivas, "Base operativa vigente", "building2", "neutral")}
+        ${dashboardMetricCard("En seguimiento", summary.empresasEnSeguimiento, "Cartera que exige acompanamiento", "calendar", "warning")}
+        ${dashboardMetricCard("Sin responsable", summary.empresasSinResponsableAsignado, "Empresas sin dueno operativo", "users", "danger")}
         ${dashboardMetricCard("Obligaciones activas", summary.obligacionesFiscalesActivas, "Carga fiscal actual", "receipt", "neutral")}
-        ${dashboardMetricCard("Alertas criticas", summary.alertasCriticas, "Prioridades inmediatas", "settings", "danger")}
-        ${dashboardMetricCard("Cumplimiento", `${compliance.porcentajeTareasCompletadas || 0}%`, "Cierre operativo total", "chart", "success")}
+        ${dashboardMetricCard("Alertas vencidas", summary.alertasVencidas, "Incidentes activos del sistema", "settings", "danger")}
+        ${dashboardMetricCard("Alertas atendidas", summary.alertasAtendidas, "Trazabilidad ya gestionada", "check", "success")}
+        ${dashboardMetricCard("Cumplimiento", `${compliance.porcentajeGeneralCumplimiento || compliance.porcentajeTareasCompletadas || 0}%`, "Cumplidas sobre tareas fiscales esperadas", "chart", "success")}
+      </section>
+
+      <section class="dashboard-module dashboard-module-wide">
+        <div class="dashboard-module-header">
+          <div>
+            <div class="eyebrow">Vencimientos</div>
+            <h4 class="section-title compact">Ventanas de control</h4>
+          </div>
+        </div>
+        <div class="dashboard-mini-grid dashboard-mini-grid-wide">
+          ${dashboardMiniMetricCard("Vencen hoy", deadlines.vencenHoy, "calendar")}
+          ${dashboardMiniMetricCard("Proximos 7 dias", deadlines.vencenSieteDias, "calendar")}
+          ${dashboardMiniMetricCard("Proximos 15 dias", deadlines.vencenQuinceDias, "calendar")}
+          ${dashboardMiniMetricCard("Proximos 30 dias", deadlines.vencenTreintaDias, "calendar")}
+          ${dashboardMiniMetricCard("Vencidas 1-7 dias", overdueAge.de_1_a_7, "settings")}
+          ${dashboardMiniMetricCard("Vencidas 8-15 dias", overdueAge.de_8_a_15, "settings")}
+        </div>
       </section>
 
       <section class="dashboard-module dashboard-module-wide dashboard-operations-module">
@@ -6188,6 +6319,71 @@ function dashboardSection() {
               ? topCriticalAlerts.map((alert) => dashboardAlertCard(alert)).join("")
               : '<div class="summary-list-card"><strong>Sin alertas criticas</strong><span>No hay prioridades inmediatas pendientes.</span></div>'
           }
+        </div>
+      </section>
+
+      <section class="dashboard-module dashboard-module-wide">
+        <div class="dashboard-module-header">
+          <div>
+            <div class="eyebrow">Alertas gerenciales</div>
+            <h4 class="section-title compact">Inconsistencias y prioridades de control</h4>
+          </div>
+        </div>
+        <div class="dashboard-detail-stack">
+          ${dashboardDetailPanel(
+            "Empresas con multiples alertas activas",
+            "Control",
+            `
+              <div class="table-card calendar-table-card dashboard-table-card">
+                <table>
+                  <thead><tr><th>Empresa</th><th>Alertas activas</th></tr></thead>
+                  <tbody>
+                    ${
+                      multipleAlerts.length
+                        ? multipleAlerts.map((item) => `<tr><td><strong>${escapeHtml(item.empresa)}</strong></td><td>${escapeHtml(String(item.alertasActivas || 0))}</td></tr>`).join("")
+                        : '<tr><td colspan="2" class="muted">No hay empresas con multiples alertas activas.</td></tr>'
+                    }
+                  </tbody>
+                </table>
+              </div>
+            `
+          )}
+          ${dashboardDetailPanel(
+            "Obligaciones activas sin tarea fiscal",
+            "Control",
+            `
+              <div class="table-card calendar-table-card dashboard-table-card">
+                <table>
+                  <thead><tr><th>Empresa</th><th>Obligacion</th><th>Calendarios activos</th></tr></thead>
+                  <tbody>
+                    ${
+                      missingTaskAlerts.length
+                        ? missingTaskAlerts.map((item) => `<tr><td><strong>${escapeHtml(item.empresa)}</strong></td><td>${escapeHtml(item.obligacion || "-")}</td><td>${escapeHtml(String(item.calendariosActivos || 0))}</td></tr>`).join("")
+                        : '<tr><td colspan="3" class="muted">No hay inconsistencias activas entre obligaciones y tareas.</td></tr>'
+                    }
+                  </tbody>
+                </table>
+              </div>
+            `
+          )}
+          ${dashboardDetailPanel(
+            "Tareas proximas sin responsable",
+            "Control",
+            `
+              <div class="table-card calendar-table-card dashboard-table-card">
+                <table>
+                  <thead><tr><th>Empresa</th><th>Tarea</th><th>Vence</th></tr></thead>
+                  <tbody>
+                    ${
+                      upcomingWithoutResponsible.length
+                        ? upcomingWithoutResponsible.map((item) => `<tr><td><strong>${escapeHtml(item.empresa || "-")}</strong></td><td>${escapeHtml(item.tarea || "-")}</td><td>${escapeHtml(formatDateLabel(item.fechaVencimiento))}</td></tr>`).join("")
+                        : '<tr><td colspan="3" class="muted">No hay tareas proximas sin responsable.</td></tr>'
+                    }
+                  </tbody>
+                </table>
+              </div>
+            `
+          )}
         </div>
       </section>
 
@@ -6485,75 +6681,36 @@ function roleAwarePlaceholderSection(title, description, highlights = []) {
 }
 
 function reportesSection() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const next30Days = new Date(today);
-  next30Days.setDate(next30Days.getDate() + 30);
+  const dashboard = state.dashboardData;
+  if (!dashboard) {
+    return `
+      <section class="panel-card">
+        <div class="eyebrow">Reportes</div>
+        <h3 class="section-title">Primero carga el dashboard gerencial</h3>
+        <p class="muted">Los reportes reutilizan exactamente la misma capa de calculo y filtros del dashboard.</p>
+        <button class="btn btn-primary" type="button" data-action="refresh-dashboard">Cargar datos</button>
+      </section>
+    `;
+  }
 
-  const companiesById = new Map(state.companies.map((company) => [company.id, company]));
-  const operationalCompanies = state.companies.filter((company) => company.estadoEmpresa === "activa");
-  const trackedObligations = state.companyObligations.filter((item) => !["no_aplica", "inactiva"].includes(item.estado));
-  const activeObligations = trackedObligations.filter((item) => item.estado === "activa");
-  const fiscalTasks = state.fiscalTasks.filter((task) => task.tipoTarea === "fiscal");
-  const overdueTasks = fiscalTasks.filter((task) => task.estadoOperativo === "vencida");
-  const upcomingTasks = fiscalTasks
-    .filter((task) => {
-      if (!task.fechaVencimiento || task.estadoGeneral === "completada" || task.estadoGeneral === "presentada") {
-        return false;
-      }
-      const dueDate = new Date(`${task.fechaVencimiento}T00:00:00`);
-      return !Number.isNaN(dueDate.getTime()) && dueDate >= today && dueDate <= next30Days;
-    })
-    .sort((a, b) => String(a.fechaVencimiento || "").localeCompare(String(b.fechaVencimiento || "")));
-  const criticalAlerts = state.internalAlerts.filter((alert) => alert.nivel === "critica" && !isClosedAlert(alert));
-
-  const companySummaries = operationalCompanies
-    .map((company) => {
-      const obligations = activeObligations.filter((item) => item.empresaId === company.id);
-      const tasks = fiscalTasks.filter((task) => task.empresaId === company.id);
-      const overdue = tasks.filter((task) => task.estadoOperativo === "vencida").length;
-      const nextDueTask = tasks
-        .filter((task) => task.fechaVencimiento && !["completada", "presentada", "cancelada"].includes(task.estadoGeneral))
-        .sort((a, b) => String(a.fechaVencimiento || "").localeCompare(String(b.fechaVencimiento || "")))[0];
-
-      return {
-        company,
-        obligationsCount: obligations.length,
-        tasksCount: tasks.length,
-        overdueCount: overdue,
-        nextDueTask
-      };
-    })
-    .sort((a, b) => {
-      if (b.overdueCount !== a.overdueCount) {
-        return b.overdueCount - a.overdueCount;
-      }
-      return b.tasksCount - a.tasksCount;
-    });
-
-  const topTaxes = Object.values(
-    activeObligations.reduce((accumulator, obligation) => {
-      const taxName = obligation.impuesto?.nombre || obligation.nombreObligacion || "Impuesto";
-      if (!accumulator[taxName]) {
-        accumulator[taxName] = {
-          taxName,
-          obligationsCount: 0,
-          tasksCount: 0
-        };
-      }
-
-      accumulator[taxName].obligationsCount += 1;
-      accumulator[taxName].tasksCount += fiscalTasks.filter((task) => task.impuestoId === obligation.impuestoId).length;
-      return accumulator;
-    }, {})
-  )
-    .sort((a, b) => b.tasksCount - a.tasksCount || b.obligationsCount - a.obligationsCount)
-    .slice(0, 6);
-
-  const topCompany = companySummaries[0] || null;
-  const jamani = companySummaries.find((item) => /jamani/i.test(item.company?.razonSocial || ""));
-  const selectedReportCompanyId = state.reportFilters.companyId || operationalCompanies[0]?.id || "";
+  const reportTypes = [
+    { value: "cumplimiento", label: "Cumplimiento" },
+    { value: "tareas_fiscales", label: "Tareas fiscales" },
+    { value: "vencimientos", label: "Vencimientos" },
+    { value: "alertas", label: "Alertas" },
+    { value: "empresas", label: "Por empresa" },
+    { value: "responsables", label: "Por responsable" },
+    { value: "riesgo_empresas", label: "Empresas en riesgo" }
+  ];
+  const operationalCompanies = Array.isArray(dashboard.filterOptions?.empresas) ? dashboard.filterOptions.empresas : [];
+  const selectedReportCompanyId = state.reportFilters.companyId || "";
   const selectedReportCompany = operationalCompanies.find((company) => company.id === selectedReportCompanyId) || null;
+  const summary = dashboard.summary || {};
+  const compliance = dashboard.compliance || {};
+  const riskByCompany = Array.isArray(dashboard.riskByCompany) ? dashboard.riskByCompany : [];
+  const workloadByUser = Array.isArray(dashboard.workloadByUser) ? dashboard.workloadByUser : [];
+  const deadlines = dashboard.deadlines || {};
+  const upcomingItems = Array.isArray(deadlines.proximosVencimientos) ? deadlines.proximosVencimientos.slice(0, 8) : [];
 
   return `
     <section class="panel-card">
@@ -6564,68 +6721,57 @@ function reportesSection() {
         </div>
       </div>
       <p class="muted">
-        Este corte consolida empresas activas, obligaciones aplicables, vencimientos y alertas operativas segun la informacion actualmente cargada en el sistema.
+        Esta vista exporta reportes gerenciales desde la misma fuente oficial del dashboard: tareas visibles, alertas reconciliadas, obligaciones activas y calendarios aplicables.
       </p>
-      ${
-        hasPermission("exportar_reportes")
-          ? renderAppFilterCard({
-              title: "Exportacion de reportes",
-              description: "Selecciona la empresa para generar un reporte cliente con el mismo alcance visible en el sistema.",
-              fields: `
-                <label class="app-filter-field app-filter-field-tax">
-                  <span class="app-filter-label">Empresa</span>
-                  <select class="app-filter-select" data-report-company-select>
-                    ${operationalCompanies
-                      .map(
-                        (company) => `
-                          <option value="${escapeHtml(company.id)}" ${company.id === selectedReportCompanyId ? "selected" : ""}>
-                            ${escapeHtml(company.razonSocial)}
-                          </option>
-                        `
-                      )
-                      .join("")}
-                  </select>
-                </label>
-              `,
-              actions: `
-                <button class="btn btn-primary app-filter-button" type="button" data-action="download-client-report" ${selectedReportCompany ? "" : "disabled"}>
-                  Generar reporte cliente
-                </button>
-              `,
-              gridClass: "app-filter-grid app-filter-grid-report"
-            })
-          : ""
-      }
-      ${
-        selectedReportCompany
-          ? `<div class="summary-list-card" style="margin-top: 16px;">
-              <strong>Empresa seleccionada para exportar:</strong>
-              <span>${escapeHtml(selectedReportCompany.razonSocial)}</span>
-            </div>`
-          : ""
-      }
+      <div class="app-filter-grid app-filter-grid-report">
+        <label class="app-filter-field app-filter-field-tax">
+          <span class="app-filter-label">Reporte</span>
+          <select class="app-filter-select" data-report-type-select>
+            ${reportTypes.map((item) => `<option value="${escapeHtml(item.value)}" ${item.value === state.reportFilters.reportType ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}
+          </select>
+        </label>
+        <label class="app-filter-field app-filter-field-tax">
+          <span class="app-filter-label">Empresa</span>
+          <select class="app-filter-select" data-report-company-select>
+            <option value="">Todas</option>
+            ${operationalCompanies.map((company) => `<option value="${escapeHtml(company.id)}" ${company.id === selectedReportCompanyId ? "selected" : ""}>${escapeHtml(company.label || company.razonSocial || "")}</option>`).join("")}
+          </select>
+        </label>
+      </div>
+      <div class="panel-actions" style="margin-top: 16px;">
+        ${
+          hasPermission("exportar_reportes")
+            ? `<button class="btn btn-primary" type="button" data-action="download-management-report">Exportar CSV gerencial</button>`
+            : ""
+        }
+        ${
+          hasPermission("exportar_reportes")
+            ? `<button class="btn btn-secondary" type="button" data-action="download-client-report" ${selectedReportCompany ? "" : "disabled"}>Reporte cliente HTML</button>`
+            : ""
+        }
+      </div>
     </section>
 
     <section class="stats-grid fiscal-stats-grid">
       <article class="stat-card">
         <div class="eyebrow">Empresas activas</div>
-        <div class="stat-value">${escapeHtml(String(operationalCompanies.length))}</div>
+        <div class="stat-value">${escapeHtml(String(summary.empresasActivas || 0))}</div>
       </article>
       <article class="stat-card">
-        <div class="eyebrow">Obligaciones activas</div>
-        <div class="stat-value">${escapeHtml(String(activeObligations.length))}</div>
+        <div class="eyebrow">Cumplimiento</div>
+        <div class="stat-value">${escapeHtml(String(compliance.porcentajeGeneralCumplimiento || 0))}%</div>
       </article>
       <article class="stat-card">
-        <div class="eyebrow">Vencimientos proximos</div>
-        <div class="stat-value">${escapeHtml(String(upcomingTasks.length))}</div>
+        <div class="eyebrow">Alertas vencidas</div>
+        <div class="stat-value">${escapeHtml(String(summary.alertasVencidas || 0))}</div>
       </article>
       <article class="stat-card">
         <div class="eyebrow">Tareas vencidas</div>
-        <div class="stat-value">${escapeHtml(String(overdueTasks.length))}</div>
+        <div class="stat-value">${escapeHtml(String(summary.tareasVencidas || 0))}</div>
       </article>
       <article class="stat-card">
-        <div class="eyebrow">Alertas criticas</div>
-        <div class="stat-value">${escapeHtml(String(criticalAlerts.length))}</div>
+        <div class="eyebrow">Proximos 30 dias</div>
+        <div class="stat-value">${escapeHtml(String(deadlines.vencenTreintaDias || 0))}</div>
       </article>
       <article class="stat-card">
         <div class="eyebrow">Alcance del usuario</div>
@@ -6638,54 +6784,48 @@ function reportesSection() {
         <div class="eyebrow">Lectura ejecutiva</div>
         <h4 class="section-title">Resumen del periodo</h4>
         <div class="summary-list-card">
-          <strong>Cobertura tributaria:</strong>
-          <span>${escapeHtml(`${activeObligations.length} obligaciones activas y ${fiscalTasks.length} tareas fiscales programadas para seguimiento.`)}</span>
+          <strong>Base fiscal esperada:</strong>
+          <span>${escapeHtml(`${compliance.tareasEsperadas || 0} tareas fiscales esperadas, ${compliance.tareasCumplidas || 0} cumplidas y ${compliance.tareasVencidas || 0} vencidas.`)}</span>
         </div>
         <div class="summary-list-card">
           <strong>Prioridad operativa:</strong>
-          <span>${escapeHtml(
-            topCompany
-              ? `${topCompany.company.razonSocial} concentra ${topCompany.overdueCount} vencimientos y ${topCompany.tasksCount} tareas trazables.`
-              : "Todavia no hay empresas activas con seguimiento fiscal cargado."
-          )}</span>
+          <span>${escapeHtml(riskByCompany[0] ? `${riskByCompany[0].empresa} aparece como primer foco por riesgo ${riskByCompany[0].nivelRiesgo}.` : "Todavia no hay empresas visibles con riesgo operativo.")}</span>
         </div>
         <div class="summary-list-card">
-          <strong>Empresa Jamani:</strong>
-          <span>${escapeHtml(
-            jamani
-              ? `Registra ${jamani.obligationsCount} obligaciones activas y ${jamani.tasksCount} tareas visibles en calendario.`
-              : "No se encontro una empresa Jamani activa dentro del alcance actual."
-          )}</span>
+          <strong>Exportacion actual:</strong>
+          <span>${escapeHtml(selectedReportCompany ? `El reporte cliente HTML quedara filtrado para ${selectedReportCompany.label || selectedReportCompany.razonSocial}.` : "La exportacion CSV gerencial usa los mismos filtros vigentes del dashboard.")}</span>
         </div>
       </article>
 
       <article class="panel-card">
-        <div class="eyebrow">Cobertura por impuesto</div>
-        <h4 class="section-title">Impuestos con mayor carga operativa</h4>
+        <div class="eyebrow">Carga por responsable</div>
+        <h4 class="section-title">Responsables visibles</h4>
         <div class="table-wrapper">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Impuesto</th>
-                <th>Obligaciones activas</th>
-                <th>Tareas programadas</th>
+                <th>Responsable</th>
+                <th>Pendientes</th>
+                <th>En proceso</th>
+                <th>Vencidas</th>
               </tr>
             </thead>
             <tbody>
               ${
-                topTaxes.length
-                  ? topTaxes
+                workloadByUser.length
+                  ? workloadByUser
                       .map(
                         (item) => `
                           <tr>
-                            <td>${escapeHtml(item.taxName)}</td>
-                            <td>${escapeHtml(String(item.obligationsCount))}</td>
-                            <td>${escapeHtml(String(item.tasksCount))}</td>
+                            <td>${escapeHtml(item.usuario || "-")}</td>
+                            <td>${escapeHtml(String(item.tareasPendientes || 0))}</td>
+                            <td>${escapeHtml(String(item.tareasEnProceso || 0))}</td>
+                            <td>${escapeHtml(String(item.tareasVencidas || 0))}</td>
                           </tr>
                         `
                       )
                       .join("")
-                  : '<tr><td colspan="3" class="muted">Aun no hay obligaciones activas relacionadas con calendarios.</td></tr>'
+                  : '<tr><td colspan="4" class="muted">Aun no hay responsables visibles con carga operativa.</td></tr>'
               }
             </tbody>
           </table>
@@ -6705,31 +6845,29 @@ function reportesSection() {
           <thead>
             <tr>
               <th>Empresa</th>
-              <th>Estado</th>
-              <th>Obligaciones activas</th>
-              <th>Tareas</th>
+              <th>Riesgo</th>
+              <th>Cumplimiento reciente</th>
               <th>Vencidas</th>
-              <th>Proximo vencimiento</th>
+              <th>Alertas vencidas</th>
             </tr>
           </thead>
           <tbody>
             ${
-              companySummaries.length
-                ? companySummaries
+              riskByCompany.length
+                ? riskByCompany
                     .map(
                       (item) => `
                         <tr>
-                          <td>${escapeHtml(item.company.razonSocial)}</td>
-                          <td><span class="${statusClass(item.company.estadoEmpresa)}">${escapeHtml(formatStatus(item.company.estadoEmpresa))}</span></td>
-                          <td>${escapeHtml(String(item.obligationsCount))}</td>
-                          <td>${escapeHtml(String(item.tasksCount))}</td>
-                          <td>${escapeHtml(String(item.overdueCount))}</td>
-                          <td>${escapeHtml(item.nextDueTask ? formatDateLabel(item.nextDueTask.fechaVencimiento) : "Sin programacion")}</td>
+                          <td>${escapeHtml(item.empresa)}</td>
+                          <td><span class="${statusClass(item.nivelRiesgo || "bajo")}">${escapeHtml(formatStatus(item.nivelRiesgo || "bajo"))}</span></td>
+                          <td>${escapeHtml(String(item.cumplimientoReciente || 0))}%</td>
+                          <td>${escapeHtml(String(item.tareasVencidas || 0))}</td>
+                          <td>${escapeHtml(String(item.alertasVencidas || 0))}</td>
                         </tr>
                       `
                     )
                     .join("")
-                : '<tr><td colspan="6" class="muted">Todavia no hay empresas activas para consolidar en reportes.</td></tr>'
+                : '<tr><td colspan="5" class="muted">Todavia no hay empresas visibles para consolidar en reportes.</td></tr>'
             }
           </tbody>
         </table>
@@ -6750,28 +6888,25 @@ function reportesSection() {
               <th>Fecha</th>
               <th>Empresa</th>
               <th>Tarea</th>
-              <th>Impuesto</th>
-              <th>Estado</th>
+              <th>Riesgo</th>
             </tr>
           </thead>
           <tbody>
             ${
-              upcomingTasks.length
-                ? upcomingTasks
-                    .slice(0, 12)
+              upcomingItems.length
+                ? upcomingItems
                     .map(
                       (task) => `
                         <tr>
                           <td>${escapeHtml(formatDateLabel(task.fechaVencimiento))}</td>
-                          <td>${escapeHtml(companiesById.get(task.empresaId)?.razonSocial || "Empresa")}</td>
-                          <td>${escapeHtml(task.titulo || task.descripcion || "Tarea fiscal")}</td>
-                          <td>${escapeHtml(task.impuestoNombre || "No definido")}</td>
-                          <td><span class="${statusClass(task.estadoOperativo)}">${escapeHtml(formatStatus(task.estadoOperativo))}</span></td>
+                          <td>${escapeHtml(task.empresa || "Empresa")}</td>
+                          <td>${escapeHtml(task.titulo || "Tarea fiscal")}</td>
+                          <td><span class="${statusClass(task.nivelRiesgo || "bajo")}">${escapeHtml(formatStatus(task.nivelRiesgo || "bajo"))}</span></td>
                         </tr>
                       `
                     )
                     .join("")
-                : '<tr><td colspan="5" class="muted">No hay vencimientos proximos dentro de los siguientes 30 dias.</td></tr>'
+                : '<tr><td colspan="4" class="muted">No hay vencimientos proximos dentro de los siguientes 30 dias.</td></tr>'
             }
           </tbody>
         </table>
@@ -7466,6 +7601,43 @@ function bindEvents() {
     render();
   });
 
+  document.querySelector("[data-report-type-select]")?.addEventListener("change", (event) => {
+    state.reportFilters.reportType = event.currentTarget.value;
+    render();
+  });
+
+  document.querySelectorAll("[data-dashboard-filter]").forEach((field) => {
+    field.addEventListener("change", (event) => {
+      const key = event.currentTarget.getAttribute("data-dashboard-filter");
+      if (!key) {
+        return;
+      }
+      state.reportFilters[key] = event.currentTarget.value;
+    });
+  });
+
+  document.querySelector('[data-action="apply-dashboard-filters"]')?.addEventListener("click", async () => {
+    await refreshDashboard();
+    render();
+  });
+
+  document.querySelector('[data-action="clear-dashboard-filters"]')?.addEventListener("click", async () => {
+    state.reportFilters = {
+      companyId: "",
+      dateFrom: "",
+      dateTo: "",
+      responsibleId: "",
+      taskStatus: "",
+      taxId: "",
+      riskLevel: "",
+      fiscalPeriod: "",
+      view: "",
+      reportType: state.reportFilters.reportType || "cumplimiento"
+    };
+    await refreshDashboard();
+    render();
+  });
+
   document.querySelector('[data-action="download-client-report"]')?.addEventListener("click", async () => {
     const companyId = state.reportFilters.companyId || state.companies.find((company) => company.estadoEmpresa === "activa")?.id || "";
 
@@ -7482,6 +7654,30 @@ function bindEvents() {
       state.saveMessage = `Reporte generado correctamente para ${company?.razonSocial || "la empresa seleccionada"}.`;
     } catch (error) {
       state.saveMessage = toUserMessage(error, "No se pudo generar el reporte del cliente.");
+    }
+
+    render();
+  });
+
+  document.querySelector('[data-action="download-management-report"]')?.addEventListener("click", async () => {
+    try {
+      state.saveMessage = null;
+      const params = new URLSearchParams();
+      params.set("type", state.reportFilters.reportType || "cumplimiento");
+      params.set("format", "csv");
+      if (state.reportFilters.companyId) params.set("empresaId", state.reportFilters.companyId);
+      if (state.reportFilters.dateFrom) params.set("fechaDesde", state.reportFilters.dateFrom);
+      if (state.reportFilters.dateTo) params.set("fechaHasta", state.reportFilters.dateTo);
+      if (state.reportFilters.responsibleId) params.set("responsableId", state.reportFilters.responsibleId);
+      if (state.reportFilters.taskStatus) params.set("estadoTarea", state.reportFilters.taskStatus);
+      if (state.reportFilters.taxId) params.set("impuestoId", state.reportFilters.taxId);
+      if (state.reportFilters.riskLevel) params.set("nivelRiesgo", state.reportFilters.riskLevel);
+      if (state.reportFilters.fiscalPeriod) params.set("periodoFiscal", state.reportFilters.fiscalPeriod);
+      if (state.reportFilters.view) params.set("vista", state.reportFilters.view);
+      await downloadAuthenticatedFile(`/api/reports/management/export?${params.toString()}`, "reporte-gerencial.csv");
+      state.saveMessage = "Reporte gerencial exportado correctamente.";
+    } catch (error) {
+      state.saveMessage = toUserMessage(error, "No se pudo exportar el reporte gerencial.");
     }
 
     render();
