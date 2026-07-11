@@ -76,7 +76,12 @@ import {
   updateInternalAlertStatus
 } from "./lib/alert-service.js";
 import { canUserAccessAlert } from "./lib/alert-access.js";
-import { buildDashboard } from "./lib/dashboard-service.js";
+import {
+  buildDashboard,
+  buildDashboardReport,
+  exportDashboardReportCsv,
+  listDashboardReportTypes
+} from "./lib/dashboard-service.js";
 import { canManageTaskAsReviewer, canUserAccessTask } from "./lib/access-control.js";
 import { ensureStorage } from "./lib/storage.js";
 import { getAudits, getUsers } from "./lib/storage.js";
@@ -218,6 +223,20 @@ function parseTaskFilters(searchParams) {
     tipoTarea: searchParams.get("tipoTarea") || "",
     vencidas: searchParams.get("vencidas") || "",
     proximas: searchParams.get("proximas") || ""
+  };
+}
+
+function parseDashboardFilters(searchParams) {
+  return {
+    fechaDesde: searchParams.get("fechaDesde") || "",
+    fechaHasta: searchParams.get("fechaHasta") || "",
+    empresaId: searchParams.get("empresaId") || searchParams.get("companyId") || "",
+    responsableId: searchParams.get("responsableId") || searchParams.get("userId") || "",
+    estadoTarea: searchParams.get("estadoTarea") || searchParams.get("estado") || "",
+    impuestoId: searchParams.get("impuestoId") || searchParams.get("tipoObligacion") || "",
+    nivelRiesgo: searchParams.get("nivelRiesgo") || "",
+    periodoFiscal: searchParams.get("periodoFiscal") || searchParams.get("periodo") || "",
+    vista: searchParams.get("vista") || ""
   };
 }
 
@@ -632,7 +651,94 @@ const server = http.createServer((request, response) => {
       return;
     }
 
-    sendJson(response, 200, buildDashboard(currentUser));
+    sendJson(response, 200, buildDashboard(currentUser, parseDashboardFilters(url.searchParams)));
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/dashboard/summary") {
+    if (!requireAnyPermission(response, currentUser, ["ver_dashboard_general", "ver_dashboard_supervisor", "ver_dashboard_usuario", "ver_tareas", "ver_tareas_empresa"])) {
+      return;
+    }
+
+    const dashboard = buildDashboard(currentUser, parseDashboardFilters(url.searchParams));
+    sendJson(response, 200, {
+      generatedAt: dashboard.generatedAt,
+      filters: dashboard.filters,
+      scope: dashboard.scope,
+      summary: dashboard.summary
+    });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/dashboard/deadlines") {
+    if (!requireAnyPermission(response, currentUser, ["ver_dashboard_general", "ver_dashboard_supervisor", "ver_dashboard_usuario", "ver_tareas", "ver_tareas_empresa"])) {
+      return;
+    }
+
+    const dashboard = buildDashboard(currentUser, parseDashboardFilters(url.searchParams));
+    sendJson(response, 200, {
+      generatedAt: dashboard.generatedAt,
+      filters: dashboard.filters,
+      deadlines: dashboard.deadlines,
+      operationsCenter: dashboard.operationsCenter
+    });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/dashboard/compliance") {
+    if (!requireAnyPermission(response, currentUser, ["ver_dashboard_general", "ver_dashboard_supervisor", "ver_dashboard_usuario", "ver_tareas", "ver_tareas_empresa"])) {
+      return;
+    }
+
+    const dashboard = buildDashboard(currentUser, parseDashboardFilters(url.searchParams));
+    sendJson(response, 200, {
+      generatedAt: dashboard.generatedAt,
+      filters: dashboard.filters,
+      compliance: dashboard.compliance
+    });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/dashboard/risk") {
+    if (!requireAnyPermission(response, currentUser, ["ver_dashboard_general", "ver_dashboard_supervisor", "ver_dashboard_usuario", "ver_tareas", "ver_tareas_empresa"])) {
+      return;
+    }
+
+    const dashboard = buildDashboard(currentUser, parseDashboardFilters(url.searchParams));
+    sendJson(response, 200, {
+      generatedAt: dashboard.generatedAt,
+      filters: dashboard.filters,
+      riskByCompany: dashboard.riskByCompany
+    });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/dashboard/workload") {
+    if (!requireAnyPermission(response, currentUser, ["ver_dashboard_general", "ver_dashboard_supervisor", "ver_dashboard_usuario", "ver_tareas", "ver_tareas_empresa"])) {
+      return;
+    }
+
+    const dashboard = buildDashboard(currentUser, parseDashboardFilters(url.searchParams));
+    sendJson(response, 200, {
+      generatedAt: dashboard.generatedAt,
+      filters: dashboard.filters,
+      workloadByUser: dashboard.workloadByUser,
+      usersWithoutAssignments: dashboard.usersWithoutAssignments
+    });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/dashboard/manager-alerts") {
+    if (!requireAnyPermission(response, currentUser, ["ver_dashboard_general", "ver_dashboard_supervisor", "ver_dashboard_usuario", "ver_tareas", "ver_tareas_empresa"])) {
+      return;
+    }
+
+    const dashboard = buildDashboard(currentUser, parseDashboardFilters(url.searchParams));
+    sendJson(response, 200, {
+      generatedAt: dashboard.generatedAt,
+      filters: dashboard.filters,
+      managementAlerts: dashboard.managementAlerts
+    });
     return;
   }
 
@@ -1466,6 +1572,59 @@ const server = http.createServer((request, response) => {
       response.end(report.html);
     } catch (error) {
       sendApiError(response, error, "No se pudo generar el reporte del cliente.");
+    }
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/reports/management/types") {
+    if (!requirePermission(response, currentUser, "ver_reportes", "No tienes permisos para consultar reportes gerenciales.")) {
+      return;
+    }
+
+    sendJson(response, 200, {
+      items: listDashboardReportTypes()
+    });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/reports/management") {
+    if (!requirePermission(response, currentUser, "ver_reportes", "No tienes permisos para consultar reportes gerenciales.")) {
+      return;
+    }
+
+    try {
+      const reportType = String(url.searchParams.get("type") || "cumplimiento");
+      const report = buildDashboardReport(currentUser, reportType, parseDashboardFilters(url.searchParams));
+      sendJson(response, 200, report);
+    } catch (error) {
+      sendApiError(response, error, "No se pudo generar el reporte gerencial.");
+    }
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/reports/management/export") {
+    if (!requirePermission(response, currentUser, "exportar_reportes", "No tienes permisos para exportar reportes gerenciales.")) {
+      return;
+    }
+
+    try {
+      const format = String(url.searchParams.get("format") || "csv").trim().toLowerCase();
+      if (format !== "csv") {
+        sendJson(response, 400, { error: "Por ahora solo se admite exportacion CSV." });
+        return;
+      }
+
+      const reportType = String(url.searchParams.get("type") || "cumplimiento");
+      const report = exportDashboardReportCsv(currentUser, reportType, parseDashboardFilters(url.searchParams));
+      response.writeHead(200, {
+        "Content-Type": report.contentType,
+        "Content-Disposition": `attachment; filename="${report.fileName}"`,
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      });
+      response.end(report.body);
+    } catch (error) {
+      sendApiError(response, error, "No se pudo exportar el reporte gerencial.");
     }
     return;
   }

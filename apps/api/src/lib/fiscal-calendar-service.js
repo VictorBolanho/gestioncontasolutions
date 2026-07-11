@@ -1212,6 +1212,16 @@ export function listFiscalTasks() {
   return listTasks({ tipoTarea: "fiscal" });
 }
 
+export function listApplicableActiveCalendarsForObligation(company, obligation) {
+  if (!company || !obligation) {
+    return [];
+  }
+
+  const profile = getCompanyEffectiveTaxProfile(company);
+  const calendars = getFiscalCalendars().filter((calendar) => matchesCalendarToCompany(calendar, company, profile, obligation));
+  return selectBestMatchingCalendars(calendars).map((calendar) => getFiscalCalendarById(calendar.id) || buildCalendarView(calendar, getTaxes()));
+}
+
 export function getFiscalTaskById(taskId) {
   const task = getTaskById(taskId);
   return task?.tipoTarea === "fiscal" ? task : null;
