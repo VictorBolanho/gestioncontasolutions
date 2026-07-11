@@ -1,14 +1,14 @@
 import {
   COMPANY_STATUS,
   canAccessCompany,
-  getEffectivePermissions,
-  getPrimaryRole
+  getEffectivePermissions
 } from "../../../../packages/domain/index.js";
 import {
   getCompanies,
   getCompanyObligations,
   getUsers
 } from "./storage.js";
+import { canUserAccessTask } from "./access-control.js";
 import { listInternalAlertsForUser } from "./alert-service.js";
 import { listTasks } from "./task-service.js";
 
@@ -24,29 +24,6 @@ function userWithEffectivePermissions(user) {
 
 function canSeeCompany(user, companyId) {
   return canAccessCompany(userWithEffectivePermissions(user), companyId);
-}
-
-function taskVisibleToRole(task, currentUser) {
-  const primaryRole = getPrimaryRole(currentUser);
-  const supervisedUsers = new Set(Array.isArray(currentUser?.supervisedUsers) ? currentUser.supervisedUsers : []);
-
-  if (["owner", "administrador", "gerente"].includes(primaryRole)) {
-    return true;
-  }
-
-  if (["senior_accountant", "supervisor"].includes(primaryRole)) {
-    return (
-      task.responsableId === currentUser?.id ||
-      supervisedUsers.has(task.responsableId) ||
-      !String(task.responsableId || "").trim()
-    );
-  }
-
-  if (["junior_accountant", "operativo_medio", "operativo_basico", "apprentice"].includes(primaryRole)) {
-    return task.responsableId === currentUser?.id;
-  }
-
-  return false;
 }
 
 function isAlertOpen(alert) {
@@ -275,7 +252,7 @@ export function buildDashboard(currentUser) {
   const visibleCompanies = companies.filter((company) => canSeeCompany(currentUser, company.id));
   const visibleCompanyIds = new Set(visibleCompanies.map((company) => company.id));
   const companyMap = new Map(visibleCompanies.map((company) => [company.id, company]));
-  const tasks = listTasks().filter((task) => visibleCompanyIds.has(task.empresaId) && taskVisibleToRole(task, currentUser));
+  const tasks = listTasks().filter((task) => visibleCompanyIds.has(task.empresaId) && canUserAccessTask(currentUser, task));
   const obligations = getCompanyObligations().filter((obligation) => visibleCompanyIds.has(obligation.empresaId));
   const alerts = listInternalAlertsForUser(currentUser, {}, "system").filter((alert) => visibleCompanyIds.has(alert.empresaId));
   const users = getUsers();

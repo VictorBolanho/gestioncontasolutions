@@ -267,6 +267,15 @@ function defaultWorkflowStageForTask(task, status = getTaskStatus(task)) {
   return "pendiente_preparacion";
 }
 
+function reopenedTaskStatus(task) {
+  const workflowStage = normalizeText(task?.etapaGestion);
+  if (["en_preparacion", "preparada", "en_revision", "aprobada", "pagada"].includes(workflowStage)) {
+    return TASK_OPERATIONAL_STATUS.IN_PROGRESS;
+  }
+
+  return TASK_OPERATIONAL_STATUS.PENDING;
+}
+
 function resolveWorkflowStage(task, requestedStage = "", status = getTaskStatus(task)) {
   if (!isWorkflowManagedTask(task)) {
     return "";
@@ -468,11 +477,15 @@ function applyOverdueStatuses(tasks, actor = "system") {
 
   for (const task of tasks) {
     const status = getTaskStatus(task);
-    if (!task.fechaVencimiento || CLOSED_STATUSES.has(status) || status === TASK_OPERATIONAL_STATUS.OVERDUE) {
+    if (!task.fechaVencimiento || CLOSED_STATUSES.has(status)) {
       continue;
     }
 
     if (String(task.fechaVencimiento) < currentDate) {
+      if (status === TASK_OPERATIONAL_STATUS.OVERDUE) {
+        continue;
+      }
+
       const previous = clone(task);
       setTaskStatus(task, TASK_OPERATIONAL_STATUS.OVERDUE, actor);
       changed = true;
@@ -485,6 +498,28 @@ function applyOverdueStatuses(tasks, actor = "system") {
           recursoTipo: "tarea",
           recursoId: task.id,
           descripcion: `La tarea ${task.titulo || task.id} quedo vencida automaticamente.`,
+          valorAnterior: previous,
+          valorNuevo: clone(task)
+        })
+      );
+      continue;
+    }
+
+    if (status === TASK_OPERATIONAL_STATUS.OVERDUE) {
+      const previous = clone(task);
+      setTaskStatus(task, reopenedTaskStatus(task), actor);
+      delete task.closedAt;
+      delete task.closedBy;
+      changed = true;
+      audits.push(
+        createAuditEntry({
+          organizacionId: organization.id,
+          usuarioId: actor,
+          accion: "reactivar_tarea_reprogramada",
+          modulo: "tareas",
+          recursoTipo: "tarea",
+          recursoId: task.id,
+          descripcion: `La tarea ${task.titulo || task.id} salio de vencida por cambio real en la fecha de vencimiento.`,
           valorAnterior: previous,
           valorNuevo: clone(task)
         })

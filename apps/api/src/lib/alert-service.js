@@ -178,6 +178,8 @@ function companyDisplayName(task) {
 }
 
 function buildAlertDraft(task) {
+  // Las alertas internas operativas nacen exclusivamente desde tareas fiscales o de cumplimiento.
+  // Las obligaciones fiscales deben convertirse primero en tareas para que exista una alerta vigente.
   if (shouldSkipTask(task)) {
     return null;
   }
@@ -291,6 +293,8 @@ function buildAlertView(alert, task = null) {
           id: task.id,
           titulo: task.titulo,
           tipoTarea: task.tipoTarea,
+          empresaId: task.empresaId,
+          responsableId: task.responsableId || "",
           estadoOperativo: task.estadoOperativo,
           periodo: task.periodo,
           anio: task.anio,

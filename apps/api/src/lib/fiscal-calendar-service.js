@@ -41,6 +41,13 @@ export const FISCAL_TASK_GENERAL_STATUS = Object.freeze({
   NOT_APPLICABLE: "no_aplica"
 });
 
+const CLOSED_TASK_STATUSES = new Set([
+  FISCAL_TASK_GENERAL_STATUS.PRESENTED,
+  FISCAL_TASK_GENERAL_STATUS.COMPLETED,
+  FISCAL_TASK_GENERAL_STATUS.CANCELED,
+  FISCAL_TASK_GENERAL_STATUS.NOT_APPLICABLE
+]);
+
 const CALENDAR_PERIODICITIES = new Set([
   "semanal",
   "mensual",
@@ -581,8 +588,156 @@ function buildFiscalTaskVariants(calendar) {
   }));
 }
 
+function syncTaskFieldsWithCalendar(task, calendar, obligation, actor) {
+  const variant = buildFiscalTaskVariants(calendar).find(
+    (item) => normalizeFiscalMilestone(item.cumplimientoFiscal) === normalizeFiscalMilestone(task.cumplimientoFiscal)
+  );
+
+  task.calendarioFiscalId = calendar.id;
+  task.versionCalendario = calendar.version;
+  task.periodo = calendar.periodo;
+  task.anio = calendar.anio;
+  task.fechaInicioPeriodo = calendar.fechaInicioPeriodo;
+  task.fechaFinPeriodo = calendar.fechaFinPeriodo;
+  task.fechaVencimiento = calendar.fechaVencimiento;
+  task.fechaLimiteInterna = subtractCalendarDays(calendar.fechaVencimiento, 3);
+  task.nombreCuota = calendar.nombreCuota || "";
+  task.numeroCuota = calendar.numeroCuota ?? null;
+  task.tipoPago = calendar.tipoPago || "declaracion_y_pago";
+  task.eventoFiscalClave = normalizeFiscalEventKey(obligation.eventoFiscalClave || calendar.eventoFiscalClave);
+  task.eventoFiscal = obligation.eventoFiscal || calendar.eventoFiscal || "";
+  task.titulo = buildFiscalTaskTitle(
+    variant || {
+      cumplimientoFiscal: normalizeFiscalMilestone(task.cumplimientoFiscal),
+      tituloPrefijo:
+        normalizeFiscalMilestone(task.cumplimientoFiscal) === "declaracion"
+          ? "Declaracion"
+          : normalizeFiscalMilestone(task.cumplimientoFiscal) === "pago"
+            ? "Pago"
+            : "Cumplimiento",
+      descripcion: "Gestionar el cumplimiento fiscal correspondiente."
+    },
+    obligation,
+    calendar
+  );
+  task.descripcion = `Tarea fiscal generada desde la obligacion ${obligation.nombreObligacion}${obligation.eventoFiscal ? ` (${obligation.eventoFiscal})` : ""}.${variant ? ` ${variant.descripcion}` : ""}`.trim();
+
+  if (taskStatus(task) === FISCAL_TASK_GENERAL_STATUS.OVERDUE && calendar.fechaVencimiento >= today()) {
+    const reopenedStatus = reopenTaskStatus(task);
+    task.estadoOperativo = reopenedStatus;
+    task.estadoGeneral = reopenedStatus;
+    delete task.closedAt;
+    delete task.closedBy;
+  }
+
+  task.updatedAt = new Date().toISOString();
+  task.actualizadoPor = actor;
+}
+
+function markTaskAsNotApplicable(task, actor) {
+  task.estadoOperativo = FISCAL_TASK_GENERAL_STATUS.NOT_APPLICABLE;
+  task.estadoGeneral = FISCAL_TASK_GENERAL_STATUS.NOT_APPLICABLE;
+  task.estadoPresentacion = "no_aplica";
+  task.estadoPago = "no_aplica";
+  task.updatedAt = new Date().toISOString();
+  task.actualizadoPor = actor;
+  task.closedAt = task.closedAt || task.updatedAt;
+  task.closedBy = task.closedBy || actor;
+}
+
+function synchronizeTasksForCalendarReplacement(previousCalendar, nextCalendar, actor = "usr_admin") {
+  const tasks = getFiscalTasks();
+  const obligations = getCompanyObligations();
+  const organization = getOrganization();
+  const audits = getAudits();
+  const nextVariants = new Set(
+    buildFiscalTaskVariants(nextCalendar).map((variant) => normalizeFiscalMilestone(variant.cumplimientoFiscal))
+  );
+  let reprogrammedCount = 0;
+  let closedCount = 0;
+  let changed = false;
+
+  for (const task of tasks) {
+    if (task.tipoTarea !== "fiscal" || task.calendarioFiscalId !== previousCalendar.id || isTaskClosed(task)) {
+      continue;
+    }
+
+    const obligation = obligations.find((item) => item.id === task.obligacionFiscalEmpresaId);
+    if (!obligation || !isObligationActive(obligation)) {
+      continue;
+    }
+
+    const previous = clone(task);
+    const milestone = normalizeFiscalMilestone(task.cumplimientoFiscal);
+
+    if (nextVariants.has(milestone)) {
+      syncTaskFieldsWithCalendar(task, nextCalendar, obligation, actor);
+      audits.push(
+        createAuditEntry({
+          organizacionId: organization.id,
+          usuarioId: actor,
+          accion: "reprogramar_tarea_fiscal_por_reemplazo_calendario",
+          modulo: "calendario_fiscal",
+          recursoTipo: "tarea_fiscal",
+          recursoId: task.id,
+          descripcion: `Se reprogramo una tarea fiscal por reemplazo del calendario ${previousCalendar.id}.`,
+          valorAnterior: previous,
+          valorNuevo: clone(task)
+        })
+      );
+      reprogrammedCount += 1;
+      changed = true;
+      continue;
+    }
+
+    markTaskAsNotApplicable(task, actor);
+    audits.push(
+      createAuditEntry({
+        organizacionId: organization.id,
+        usuarioId: actor,
+        accion: "cerrar_tarea_fiscal_por_reemplazo_calendario",
+        modulo: "calendario_fiscal",
+        recursoTipo: "tarea_fiscal",
+        recursoId: task.id,
+        descripcion: `La tarea fiscal dejo de aplicar despues del reemplazo del calendario ${previousCalendar.id}.`,
+        valorAnterior: previous,
+        valorNuevo: clone(task)
+      })
+    );
+    closedCount += 1;
+    changed = true;
+  }
+
+  if (changed) {
+    saveFiscalTasks(tasks);
+    saveAudits(audits);
+  }
+
+  return {
+    reprogrammedCount,
+    closedCount
+  };
+}
+
 function isObligationActive(obligation) {
   return normalizeText(obligation?.estado) === "activa";
+}
+
+function taskStatus(task) {
+  return normalizeText(task?.estadoOperativo || task?.estadoGeneral || FISCAL_TASK_GENERAL_STATUS.PENDING);
+}
+
+function isTaskClosed(task) {
+  return CLOSED_TASK_STATUSES.has(taskStatus(task));
+}
+
+function reopenTaskStatus(task) {
+  const workflowStage = normalizeText(task?.etapaGestion);
+  if (["en_preparacion", "preparada", "en_revision", "aprobada", "pagada"].includes(workflowStage)) {
+    return FISCAL_TASK_GENERAL_STATUS.IN_PROGRESS;
+  }
+
+  return FISCAL_TASK_GENERAL_STATUS.PENDING;
 }
 
 function isCompanyTaskBlocked(company) {
@@ -876,7 +1031,19 @@ export function activateFiscalCalendar(calendarId, actor = "usr_admin") {
     })
   );
 
-  return getFiscalCalendarById(calendar.id);
+  const taskGeneration = generateFiscalTasks(
+    {
+      impuestoId: calendar.impuestoId,
+      anio: calendar.anio,
+      incluirVencidas: true
+    },
+    actor
+  );
+
+  return {
+    ...getFiscalCalendarById(calendar.id),
+    taskGeneration
+  };
 }
 
 export function cancelFiscalCalendar(calendarId, actor = "usr_admin") {
@@ -1023,9 +1190,21 @@ export function replaceFiscalCalendar(calendarId, payload, actor = "usr_admin") 
     })
   );
 
+  const taskSynchronization = synchronizeTasksForCalendarReplacement(previous, nextCalendar, actor);
+  const taskGeneration = generateFiscalTasks(
+    {
+      impuestoId: nextCalendar.impuestoId,
+      anio: nextCalendar.anio,
+      incluirVencidas: true
+    },
+    actor
+  );
+
   return {
     replaced: getFiscalCalendarById(calendar.id),
-    replacement: getFiscalCalendarById(nextCalendar.id)
+    replacement: getFiscalCalendarById(nextCalendar.id),
+    taskSynchronization,
+    taskGeneration
   };
 }
 

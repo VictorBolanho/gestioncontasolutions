@@ -77,6 +77,7 @@ import {
 } from "./lib/alert-service.js";
 import { canUserAccessAlert } from "./lib/alert-access.js";
 import { buildDashboard } from "./lib/dashboard-service.js";
+import { canManageTaskAsReviewer, canUserAccessTask } from "./lib/access-control.js";
 import { ensureStorage } from "./lib/storage.js";
 import { getAudits, getUsers } from "./lib/storage.js";
 import {
@@ -182,58 +183,8 @@ function userCanAccessCompany(currentUser, companyId) {
   );
 }
 
-function userCanAccessTask(currentUser, task) {
-  if (!task) {
-    return false;
-  }
-
-  const primaryRole = getPrimaryRole(currentUser);
-  const supervisedUsers = Array.isArray(currentUser?.supervisedUsers) ? currentUser.supervisedUsers : [];
-  const canAccessCompanyScope = userCanAccessCompany(currentUser, task.empresaId);
-
-  if (hasPermission(currentUser, "ver_todas_empresas") || ["owner", "administrador", "gerente"].includes(primaryRole)) {
-    return true;
-  }
-
-  if (primaryRole === "cliente") {
-    return task.visibleParaCliente === true && (!task.clienteUsuarioId || task.clienteUsuarioId === currentUser?.id);
-  }
-
-  if (["senior_accountant", "supervisor"].includes(primaryRole)) {
-    return canAccessCompanyScope || task.responsableId === currentUser?.id || supervisedUsers.includes(task.responsableId);
-  }
-
-  if (["junior_accountant", "operativo_medio", "operativo_basico"].includes(primaryRole)) {
-    return task.responsableId === currentUser?.id || task.creadoPor === currentUser?.id;
-  }
-
-  if (primaryRole === "apprentice") {
-    return task.responsableId === currentUser?.id;
-  }
-
-  return canAccessCompanyScope;
-}
-
-function canManageTaskAsReviewer(currentUser, task) {
-  if (!task) {
-    return false;
-  }
-
-  const primaryRole = getPrimaryRole(currentUser);
-  if (["owner", "administrador", "gerente"].includes(primaryRole) || hasPermission(currentUser, "ver_todas_empresas")) {
-    return true;
-  }
-
-  if (["senior_accountant", "supervisor"].includes(primaryRole)) {
-    const supervisedUsers = Array.isArray(currentUser?.supervisedUsers) ? currentUser.supervisedUsers : [];
-    return task.responsableId === currentUser?.id || supervisedUsers.includes(task.responsableId);
-  }
-
-  return task.responsableId === currentUser?.id;
-}
-
 function requireTaskAccess(response, currentUser, task, message = "No tienes acceso a esta tarea.") {
-  if (!userCanAccessTask(currentUser, task)) {
+  if (!canUserAccessTask(currentUser, task)) {
     sendJson(response, 403, { error: message });
     return false;
   }
@@ -308,10 +259,6 @@ function buildVisibleAuditEntries(currentUser) {
       ...item,
       usuario: userMap.get(item.usuarioId) || null
     }));
-}
-
-function getCurrentOperationalYear() {
-  return new Date().getUTCFullYear();
 }
 
 const server = http.createServer((request, response) => {
@@ -664,7 +611,7 @@ const server = http.createServer((request, response) => {
       return;
     }
     sendJson(response, 200, {
-      items: listFiscalTasks().filter((task) => userCanAccessTask(currentUser, task))
+      items: listFiscalTasks().filter((task) => canUserAccessTask(currentUser, task))
     });
     return;
   }
@@ -675,7 +622,7 @@ const server = http.createServer((request, response) => {
     }
 
     sendJson(response, 200, {
-      items: listTasks(parseTaskFilters(url.searchParams)).filter((task) => userCanAccessTask(currentUser, task))
+      items: listTasks(parseTaskFilters(url.searchParams)).filter((task) => canUserAccessTask(currentUser, task))
     });
     return;
   }
@@ -701,7 +648,7 @@ const server = http.createServer((request, response) => {
   }
 
   if (request.method === "GET" && url.pathname === "/api/alerts") {
-    if (!requireAnyPermission(response, currentUser, ["ver_alertas", "gestionar_alertas", "ver_tareas", "ver_tareas_empresa", "generar_tareas_fiscales", "gestionar_calendarios"])) {
+    if (!requireAnyPermission(response, currentUser, ["ver_alertas", "gestionar_alertas"])) {
       return;
     }
 
@@ -720,7 +667,7 @@ const server = http.createServer((request, response) => {
   }
 
   if (request.method === "POST" && url.pathname === "/api/alerts/generate") {
-    if (!requireAnyPermission(response, currentUser, ["gestionar_alertas", "configurar_alertas", "generar_tareas_fiscales", "gestionar_calendarios"])) {
+    if (!requireAnyPermission(response, currentUser, ["gestionar_alertas", "configurar_alertas"])) {
       return;
     }
 
@@ -1224,7 +1171,6 @@ const server = http.createServer((request, response) => {
         const taskGeneration = generateFiscalTasks(
           {
             companyId,
-            anio: getCurrentOperationalYear(),
             incluirVencidas: true
           },
           currentUser.id
@@ -1264,7 +1210,6 @@ const server = http.createServer((request, response) => {
                 {
                   companyId,
                   impuestoId: result.impuestoId,
-                  anio: getCurrentOperationalYear(),
                   incluirVencidas: true
                 },
                 currentUser.id
@@ -1298,7 +1243,6 @@ const server = http.createServer((request, response) => {
                 {
                   companyId: result.empresaId,
                   impuestoId: result.impuestoId,
-                  anio: getCurrentOperationalYear(),
                   incluirVencidas: true
                 },
                 currentUser.id
@@ -1330,7 +1274,6 @@ const server = http.createServer((request, response) => {
         const taskGeneration = generateFiscalTasks(
           {
             companyId,
-            anio: getCurrentOperationalYear(),
             incluirVencidas: true
           },
           currentUser.id
@@ -1372,7 +1315,6 @@ const server = http.createServer((request, response) => {
           {
             companyId: result.empresaId,
             impuestoId: result.impuestoId,
-            anio: getCurrentOperationalYear(),
             incluirVencidas: true
           },
           currentUser.id
@@ -1470,7 +1412,21 @@ const server = http.createServer((request, response) => {
         }
         const payload = await readJsonBody(request);
         const result = updateCompanyObligation(obligationId, payload, currentUser.id);
-        sendJson(response, 200, result);
+        const taskGeneration =
+          result?.estado === "activa"
+            ? generateFiscalTasks(
+                {
+                  companyId: result.empresaId,
+                  impuestoId: result.impuestoId,
+                  incluirVencidas: true
+                },
+                currentUser.id
+              )
+            : null;
+        sendJson(response, 200, {
+          ...result,
+          taskGeneration
+        });
       })
       .catch((error) => {
         console.error("[company-obligation-edit] error:", error);

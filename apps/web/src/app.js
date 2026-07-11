@@ -3216,7 +3216,11 @@ function alertsSection() {
           <div class="eyebrow">Alertas internas</div>
           <h3 class="section-title">Vencimientos y tareas por atender</h3>
         </div>
-        <button class="btn btn-primary" type="button" data-action="generate-alerts">Actualizar alertas</button>
+        ${
+          canManageAlerts
+            ? '<button class="btn btn-primary" type="button" data-action="generate-alerts">Actualizar alertas</button>'
+            : ""
+        }
       </div>
       <p class="muted">
         Alertas internas generadas desde tareas proximas a vencer o vencidas. No se envian correos externos todavia.
@@ -8739,7 +8743,7 @@ async function loadAuthenticatedApp() {
     await refreshFiscalTasks();
   }
 
-  if (hasAnyPermission(["ver_alertas", "gestionar_alertas", "ver_tareas", "ver_tareas_empresa", "generar_tareas_fiscales", "gestionar_calendarios"])) {
+  if (hasAnyPermission(["ver_alertas", "gestionar_alertas"])) {
     await refreshInternalAlerts();
   }
 
