@@ -129,6 +129,20 @@ Incluye:
 - auditoria de lectura, atencion, descarte y rechazo de transicion invalida;
 - integracion real con dashboard operativo.
 
+### Fase 7 - Dashboard gerencial, reportes e indicadores
+
+Estado: completada.
+
+Incluye:
+
+- dashboard gerencial filtrable por fecha, empresa, responsable, estado, impuesto, riesgo, periodo y vista;
+- indicadores consolidados de cumplimiento, vencimientos, riesgo y carga operativa;
+- endpoints seccionales para resumen, vencimientos, cumplimiento, riesgo, carga y alertas gerenciales;
+- reportes gerenciales consistentes con el dashboard y protegidos por permisos;
+- exportacion CSV de reportes gerenciales;
+- uso de tareas y alertas reconciliadas como fuente unica de verdad;
+- deteccion de huecos operativos como obligaciones activas sin tarea fiscal o tareas proximas sin responsable.
+
 ## Estructura
 
 - `apps/api`: servidor API HTTP en Node nativo.
@@ -277,6 +291,15 @@ node scripts/reset-fiscal-data.js --confirm --keep-calendar-seeds
 - `POST /api/alerts/generate`
 - `PATCH /api/alerts/:id/status`
 - `GET /api/dashboard`
+- `GET /api/dashboard/summary`
+- `GET /api/dashboard/deadlines`
+- `GET /api/dashboard/compliance`
+- `GET /api/dashboard/risk`
+- `GET /api/dashboard/workload`
+- `GET /api/dashboard/manager-alerts`
+- `GET /api/reports/management/types`
+- `GET /api/reports/management`
+- `GET /api/reports/management/export`
 - `GET /api/users`
 - `POST /api/users`
 - `PATCH /api/users/:id`
@@ -299,8 +322,9 @@ node scripts/reset-fiscal-data.js --confirm --keep-calendar-seeds
 14. Asignar responsable, iniciar, cerrar o cancelar tareas.
 15. Iniciar sesion segun rol y validar acceso.
 16. Generar o reconciliar alertas internas.
-17. Revisar dashboard operativo.
-18. Verificar que no se dupliquen tareas ni alertas.
+17. Revisar dashboard operativo y gerencial.
+18. Exportar reportes gerenciales segun permisos.
+19. Verificar que no se dupliquen tareas ni alertas.
 
 ## Reglas importantes
 
@@ -316,11 +340,13 @@ node scripts/reset-fiscal-data.js --confirm --keep-calendar-seeds
 - El impuesto es un concepto estable; el calendario cambia por anio, periodo y version.
 - La obligacion fiscal de empresa conecta empresa e impuesto.
 - La generacion de tareas usa el calendario realmente aplicable, no cualquier calendario del mismo impuesto.
+- Las alertas fiscales siguen naciendo desde la tarea fiscal, no desde la obligacion directa.
 - Cambiar un calendario de un anio no modifica historicos ni tareas ya generadas de anios anteriores.
 - No se elimina historico funcional.
 - Toda ruta `/api` excepto login, meta y health requiere sesion.
 - Los usuarios sin `ver_todas_empresas` solo ven empresas asignadas.
 - La gestion de usuarios exige permisos de administracion.
+- Los reportes gerenciales requieren `ver_reportes` y la exportacion CSV exige `exportar_reportes`.
 
 ## Limitaciones actuales
 
@@ -329,13 +355,14 @@ node scripts/reset-fiscal-data.js --confirm --keep-calendar-seeds
 - Extraccion RUT basada en texto PDF, no OCR completo.
 - Catalogo de impuestos editable, pero aun sin importacion masiva.
 - Calendario fiscal manual y semilla base; sin importacion DIAN/municipal automatizada.
-- Ya existe dashboard operativo conectado a tareas y alertas reconciliadas.
+- Ya existe dashboard operativo y gerencial conectado a tareas y alertas reconciliadas.
 - No existe portal cliente todavia.
 - La persistencia de usuarios y sesiones sigue siendo local en JSON.
 - El envio real de correo sigue fuera del alcance actual.
+- El proyecto no define scripts formales de `lint` ni `build` todavia.
 
 ## Que queda pendiente
 
 Siguiente fase recomendada:
 
-- Fase 7: dashboard gerencial, reportes e indicadores sobre la base operativa actual.
+- Fase 8: configuracion general del sistema para reglas, catalogos y parametros editables sin tocar codigo.

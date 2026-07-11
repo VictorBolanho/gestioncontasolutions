@@ -104,14 +104,16 @@ Incluye:
 
 ### Fase 7 - Dashboard gerencial, reportes e indicadores
 
-Estado: pendiente.
+Estado: completada.
 
-Objetivo propuesto:
+Incluye:
 
-- ampliar el dashboard operativo actual a una capa gerencial estable;
-- separar tableros por perfil ejecutivo, supervisor y usuario;
-- crear reportes y exportables confiables sobre tareas, alertas y cumplimiento;
-- mantener una unica fuente de verdad para alertas y cargas operativas.
+- dashboard gerencial filtrable por fecha, empresa, responsable, estado, impuesto, riesgo, periodo y vista;
+- indicadores de cumplimiento, vencimientos, riesgo y carga operativa por alcance visible;
+- endpoints seccionales para resumen, vencimientos, cumplimiento, riesgo, carga y alertas gerenciales;
+- reportes gerenciales consistentes con el dashboard y exportacion CSV por permisos;
+- deteccion de huecos operativos como obligaciones activas sin tarea fiscal y tareas proximas sin responsable;
+- mantenimiento de una unica fuente de verdad basada en tareas visibles y alertas reconciliadas.
 
 ### Fase 8
 
@@ -119,7 +121,8 @@ Estado: pendiente.
 
 - configuracion general;
 - reglas editables del sistema;
-- ajustes operativos sin tocar codigo.
+- ajustes operativos sin tocar codigo;
+- parametrizacion progresiva de alertas, catalogos y plantillas.
 
 ### Fase 9
 

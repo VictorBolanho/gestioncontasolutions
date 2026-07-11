@@ -11,6 +11,7 @@ Fecha de cierre del estado actual: 2026-07-10
 - Fase 4 - Usuarios, cargos, roles, permisos y seguridad operativa
 - Fase 5 - Gestion integral de tareas fiscales y no fiscales
 - Fase 6 - Alertas internas, vencimientos y sincronizacion operativa
+- Fase 7 - Dashboard gerencial, reportes e indicadores
 
 ## Funcionalidades funcionando
 
@@ -58,6 +59,10 @@ Fecha de cierre del estado actual: 2026-07-10
 - Filtros de alertas por empresa, responsable, tipo, nivel y estado.
 - Trazabilidad de generacion, lectura, atencion, descarte y rechazo de transicion invalida.
 - Dashboard operativo conectado a alertas reconciliadas y visibles segun rol.
+- Dashboard gerencial filtrable por fecha, empresa, responsable, estado, impuesto, riesgo, periodo y vista.
+- Indicadores de cumplimiento, vencimientos, riesgo y carga operativa calculados sobre tareas visibles.
+- Reportes gerenciales consistentes con el dashboard y exportacion CSV protegida por permisos.
+- Alertas gerenciales para huecos operativos como obligaciones activas sin tarea fiscal o tareas proximas sin responsable.
 
 ## Endpoints disponibles
 
@@ -103,6 +108,15 @@ Fecha de cierre del estado actual: 2026-07-10
 - `POST /api/alerts/generate`
 - `PATCH /api/alerts/:id/status`
 - `GET /api/dashboard`
+- `GET /api/dashboard/summary`
+- `GET /api/dashboard/deadlines`
+- `GET /api/dashboard/compliance`
+- `GET /api/dashboard/risk`
+- `GET /api/dashboard/workload`
+- `GET /api/dashboard/manager-alerts`
+- `GET /api/reports/management/types`
+- `GET /api/reports/management`
+- `GET /api/reports/management/export`
 - `GET /api/users`
 - `POST /api/users`
 - `PATCH /api/users/:id`
@@ -117,6 +131,7 @@ Fecha de cierre del estado actual: 2026-07-10
 - `apps/api/src/lib/alert-access.js`
 - `apps/api/src/lib/access-control.js`
 - `apps/api/src/lib/dashboard-service.js`
+- `apps/api/src/lib/client-report-service.js`
 - `apps/api/src/lib/storage.js`
 - `apps/web/src/app.js`
 - `apps/web/styles.css`
@@ -127,7 +142,7 @@ Fecha de cierre del estado actual: 2026-07-10
 - `scripts/alerts-phase6-closure-test.js`
 - `scripts/smoke-test.js`
 
-## Flujo validado de Fase 6
+## Flujo validado de Fase 6 y 7
 
 1. Cargar PDF RUT.
 2. Revisar datos extraidos.
@@ -141,6 +156,8 @@ Fecha de cierre del estado actual: 2026-07-10
 10. Reconciliar alertas vigentes desde tareas abiertas.
 11. Consultar el mismo conjunto reconciliado desde `GET /api/alerts` y `GET /api/dashboard`.
 12. Gestionar estados de alerta segun permisos y alcance del usuario.
+13. Consumir indicadores gerenciales y reportes desde el mismo universo visible de tareas y alertas.
+14. Exportar reportes CSV sin recalculos paralelos en frontend.
 
 ## Reglas importantes
 
@@ -161,8 +178,10 @@ Fecha de cierre del estado actual: 2026-07-10
 - Una alerta `atendida` o `descartada` no reaparece para la misma condicion.
 - Un cambio real de vencimiento puede crear una nueva condicion y, por tanto, una nueva alerta.
 - `GET /api/alerts`, cambio de estado y dashboard respetan la misma visibilidad por rol y empresa.
+- `GET /api/dashboard`, sus endpoints seccionales y `GET /api/reports/management` respetan la misma visibilidad por rol y empresa.
 - `leida` requiere acceso visible a la alerta; `atendida` y `descartada` requieren `gestionar_alertas`.
 - El dashboard excluye alertas terminales de sus indicadores activos.
+- La exportacion CSV gerencial exige `exportar_reportes`.
 
 ## Pruebas y validaciones ejecutadas
 
@@ -177,6 +196,9 @@ Validaciones de sintaxis:
 - `node --check apps/api/src/server.js`
 - `node --check apps/web/src/app.js`
 - `node --check scripts/alerts-phase6-closure-test.js`
+- `node --check scripts/dashboard-phase7-test.js`
+- `node --check scripts/clean-onboarding-test.js`
+- `node --check scripts/role-permissions-test.js`
 
 Pruebas funcionales ejecutadas en secuencia:
 
@@ -186,6 +208,7 @@ Pruebas funcionales ejecutadas en secuencia:
 - `node scripts/alerts-consistency-test.js`
 - `node scripts/alerts-filters-permissions-test.js`
 - `node scripts/alerts-phase6-closure-test.js`
+- `node scripts/dashboard-phase7-test.js`
 - `node scripts/smoke-test.js`
 
 Notas de validacion:
@@ -207,8 +230,8 @@ Notas de validacion:
 
 ## Proxima fase recomendada
 
-Fase 7:
+Fase 8:
 
-- consolidar dashboard gerencial y reportes sobre la base operativa ya sincronizada;
-- separar indicadores operativos, supervisores y gerenciales en vistas estables;
-- definir exportables y reportes de seguimiento sin cambiar la fuente oficial de alertas.
+- consolidar configuracion general editable para alertas, catalogos y parametros operativos;
+- mover reglas sensibles hoy embebidas en codigo a una capa configurable con auditoria;
+- preparar mejor la evolucion a portal cliente y solicitudes documentales.

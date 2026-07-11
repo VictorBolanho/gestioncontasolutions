@@ -18,7 +18,8 @@ La implementacion actual cubre estas capas:
 - generacion de tareas fiscales
 - tareas manuales y controles DIAN
 - alertas internas
-- dashboard operativo
+- dashboard operativo y gerencial
+- reportes gerenciales y exportacion CSV
 - auditoria transversal de acciones
 
 ## 2. Arquitectura funcional
@@ -839,9 +840,9 @@ Persistencia:
 - guarda en `internal-alerts.json`
 - registra auditoria por generacion, actualizacion, lectura, atencion, descarte y rechazo de transicion invalida
 
-## 17. Dashboard operativo
+## 17. Dashboard operativo y gerencial
 
-El dashboard consolida informacion visible para el usuario segun sus permisos.
+El dashboard consolida informacion visible para el usuario segun sus permisos y expone una capa gerencial consistente sobre la misma fuente operativa.
 
 ### 17.1 Fuente de datos
 
@@ -851,35 +852,88 @@ El dashboard:
 - usa alertas reconciliadas desde `listInternalAlertsForUser`
 - excluye alertas terminales de contadores activos
 - mantiene sincronizacion con el listado de alertas
+- sirve endpoints seccionales y reportes sin recalculos paralelos en frontend
 
 ### 17.2 Resumen principal
 
 - empresas activas
+- empresas en seguimiento
+- empresas sin responsable asignado
 - obligaciones fiscales activas
 - tareas pendientes
 - tareas en proceso
 - tareas completadas o presentadas
 - tareas vencidas
+- alertas proximas
+- alertas vencidas
+- alertas atendidas
 - alertas preventivas
 - alertas criticas
 
-### 17.3 Vista del mes actual
+### 17.3 Vencimientos y cumplimiento
 
-- tareas vencidas del mes
-- tareas completadas del mes
-- tareas proximas siete dias
-- tareas fiscales del mes
-- empresas con riesgo operativo
+- vencen hoy
+- vencen en 7, 15 y 30 dias
+- antiguedad de tareas vencidas
+- proximos vencimientos
+- porcentaje general de cumplimiento sobre tareas fiscales visibles
+- cortes por empresa, responsable, impuesto y periodo
 
 ### 17.4 Analitica adicional
 
 - riesgo por empresa
 - carga por usuario
-- porcentaje de cumplimiento
-- top de alertas criticas
+- alertas gerenciales de inconsistencia
 - centro de operaciones con colas abiertas
 
-## 18. Auditoria
+### 17.5 Filtros compartidos
+
+Filtros soportados:
+
+- `fechaDesde`
+- `fechaHasta`
+- `empresaId`
+- `responsableId`
+- `estadoTarea`
+- `impuestoId`
+- `nivelRiesgo`
+- `periodoFiscal`
+- `vista`
+
+Reglas:
+
+- primero se aplica visibilidad por rol y alcance
+- luego se aplican filtros solicitados
+- dashboard y reportes usan la misma logica de servicio
+
+## 18. Reportes gerenciales
+
+### 18.1 Endpoints
+
+- `GET /api/reports/management/types`
+- `GET /api/reports/management`
+- `GET /api/reports/management/export?format=csv`
+
+### 18.2 Tipos soportados
+
+- `cumplimiento`
+- `tareas_fiscales`
+- `vencimientos`
+- `alertas`
+- `empresas`
+- `responsables`
+- `riesgo_empresas`
+
+### 18.3 Permisos y consistencia
+
+Reglas:
+
+- consultar reportes gerenciales exige `ver_reportes`
+- exportar CSV exige `exportar_reportes`
+- se reutiliza la misma visibilidad compartida de tareas, alertas y dashboard
+- las alertas atendidas o descartadas no inflan indicadores activos
+
+## 19. Auditoria
 
 El sistema registra auditoria en casi todas las acciones sensibles.
 
@@ -923,7 +977,7 @@ Cada auditoria puede guardar:
 - valor nuevo
 - fecha
 
-## 19. Flujo end-to-end recomendado
+## 20. Flujo end-to-end recomendado
 
 Orden funcional sugerido para operar el sistema:
 
@@ -939,9 +993,10 @@ Orden funcional sugerido para operar el sistema:
 10. Generar controles DIAN.
 11. Asignar responsables y ejecutar tareas.
 12. Revisar alertas internas.
-13. Monitorear dashboard y riesgo por empresa.
+13. Monitorear dashboard, riesgo por empresa y alertas gerenciales.
+14. Exportar reportes gerenciales cuando el rol lo permita.
 
-## 20. Limitaciones actuales
+## 21. Limitaciones actuales
 
 La implementacion actual todavia tiene estas fronteras:
 
@@ -949,10 +1004,10 @@ La implementacion actual todavia tiene estas fronteras:
 - no hay envio real de correo o notificaciones externas
 - no hay integracion directa con DIAN o MUISCA
 - el motor DIAN actual trabaja por heuristicas y reglas internas
-- no existe aun un modulo formal de exportacion avanzada de reportes
+- solo existe exportacion CSV gerencial; no hay exportacion avanzada adicional
 - no hay bitacora visual completa de versiones de empresa, aunque si hay auditoria
 
-## 21. Pruebas de cierre de Fase 6
+## 22. Pruebas de cierre de Fase 6 y Fase 7
 
 La validacion funcional de cierre incluye:
 
@@ -966,9 +1021,11 @@ La validacion funcional de cierre incluye:
 - reprogramacion por reemplazo de calendario
 - `conditionHash` estable sin cambio real y renovado cuando cambia el vencimiento
 - sincronizacion entre listado de alertas y dashboard
+- consistencia entre dashboard gerencial, endpoints seccionales y reportes
+- exportacion CSV con filtros y permisos
 - smoke test general del sistema
 
-## 22. Conclusion operativa
+## 23. Conclusion operativa
 
 Hoy el sistema ya cubre un flujo serio de operacion:
 
@@ -982,6 +1039,7 @@ Hoy el sistema ya cubre un flujo serio de operacion:
 - genera tareas fiscales
 - genera controles DIAN
 - produce alertas reconciliadas
-- consolida indicadores operativos
+- consolida indicadores operativos y gerenciales
+- exporta reportes CSV confiables por alcance visible
 
 Eso lo convierte en una base funcional para operar clientes tributarios con trazabilidad y revision humana antes de automatizar decisiones sensibles o abrir nuevos canales de notificacion.
