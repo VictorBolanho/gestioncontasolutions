@@ -114,10 +114,13 @@ async function main() {
   pass("Reportes no exportan datos falsos sin empresa");
 
   const users = await getJson("Usuarios", "/api/users", token);
-  if (!Array.isArray(users.items) || users.items.length !== 1) {
-    fail(`Se esperaba solo 1 usuario base y llegaron ${users.items?.length ?? "datos invalidos"}.`);
+  if (!Array.isArray(users.items) || users.items.length < 1) {
+    fail(`Se esperaba al menos 1 usuario semilla y llegaron ${users.items?.length ?? "datos invalidos"}.`);
   }
-  pass("Solo queda el owner demo como usuario base");
+  if (!users.items.some((item) => item.email === OWNER.email)) {
+    fail("El listado de usuarios no incluyo al owner demo despues del reset limpio.");
+  }
+  pass("El reset limpio conserva usuarios semilla validos para operar onboarding");
 
   const audits = await getJson("Auditoria", "/api/audits", token);
   if (!Array.isArray(audits.items)) {

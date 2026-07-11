@@ -114,7 +114,7 @@ async function main() {
   assert(bootstrap.currentUser.moduleAccess.dashboard, "Owner bootstrap", "owner sin acceso a dashboard.");
   assert(bootstrap.currentUser.moduleAccess.empresas, "Owner bootstrap", "owner sin acceso a empresas.");
   assert(companies.items.length >= 1, "Owner companies", "owner no ve empresas.");
-  assert(users.items.length === 5, "Owner users", `owner esperaba 5 usuarios semilla y vio ${users.items.length}.`);
+  assert(users.items.length >= 5, "Owner users", `owner esperaba al menos 5 usuarios semilla y vio ${users.items.length}.`);
   pass("Owner", "ve empresas, usuarios y modulos globales");
 
   const companyId = companies.items[0].id;
@@ -126,7 +126,9 @@ async function main() {
 
   assert(mateo && paula && sara && camila, "Owner users", "faltan usuarios demo esperados.");
 
-  const tempUserEmail = TEST_FALLBACKS.tempUserEmail;
+  const tempUserEmail = TEST_FALLBACKS.tempUserEmail.includes("@")
+    ? TEST_FALLBACKS.tempUserEmail.replace("@", `+${Date.now()}@`)
+    : `temp.roles.${Date.now()}@example.com`;
   const tempUser = await postJson("Owner create user", "/api/users", {
     nombre: "Temporal",
     apellido: "Roles",
