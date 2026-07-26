@@ -2,11 +2,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { TEST_FALLBACKS, TEST_USERS } from "./test-credentials.js";
+import { resolveConfiguredDataDirectory } from "../apps/api/src/lib/data-directory.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..");
-const dataDir = path.join(projectRoot, "apps", "api", "data");
+const dataDir = resolveConfiguredDataDirectory(path.join(projectRoot, "apps", "api", "data"));
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:4000";
 
 const files = {

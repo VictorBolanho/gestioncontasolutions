@@ -26,8 +26,17 @@ import {
   saveSessions,
   saveUsers
 } from "./storage.js";
+import {
+  createPasswordCredential,
+  formatSessionTokenHash,
+  hashSessionToken,
+  sessionTokenHashMatches,
+  verifyPasswordCredential
+} from "./auth-crypto.js";
+import { createLoginLimiters } from "./auth-login-limiter.js";
 
-const SESSION_TTL_MS = 1000 * 60 * 60 * 12;
+const DEFAULT_SESSION_TTL_MS = 1000 * 60 * 60 * 12;
+const MAX_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const OWNER_ROLES = new Set(["owner", "administrador", "gerente"]);
 const SENIOR_ROLES = new Set(["senior_accountant", "supervisor"]);
 const JUNIOR_ROLES = new Set(["junior_accountant", "operativo_medio", "operativo_basico"]);
@@ -40,9 +49,10 @@ const SUPERVISED_ROLES = new Set([
   "apprentice"
 ]);
 
-function createAuthError(message, statusCode = 401) {
+function createAuthError(message, statusCode = 401, details = {}) {
   const error = new Error(message);
   error.statusCode = statusCode;
+  Object.assign(error, details);
   return error;
 }
 
@@ -66,9 +76,23 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function hashPassword(password, salt) {
-  return crypto.createHash("sha256").update(`${salt}:${password}`).digest("hex");
+function getSessionTtlMs() {
+  const raw = String(process.env.AUTH_SESSION_TTL_MS || "");
+  const parsed = /^(0|[1-9][0-9]*)$/.test(raw) ? Number(raw) : NaN;
+  return Number.isSafeInteger(parsed) && parsed > 0 && parsed <= MAX_SESSION_TTL_MS ? parsed : DEFAULT_SESSION_TTL_MS;
 }
+
+function getMaxConcurrentLoginKdfs() {
+  const raw = String(process.env.AUTH_SCRYPT_MAX_CONCURRENCY || "");
+  const parsed = /^(0|[1-9][0-9]*)$/.test(raw) ? Number(raw) : NaN;
+  return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= 4 ? parsed : 2;
+}
+
+const loginLimiters = createLoginLimiters();
+const dummyPasswordCredentialPromise = createPasswordCredential("gestorconta-invalid-password-probe", {
+  salt: "00000000000000000000000000000000"
+});
+let activeLoginKdfs = 0;
 
 function buildRoleLabels(roles = []) {
   return roles.map((role) => ROLE_LABELS[role] || role);
@@ -540,7 +564,7 @@ function validateHierarchy(normalized, users, currentUserId = null) {
   validateHierarchyAssignments(normalized, users, currentUserId || normalized.id);
 }
 
-export function createUser(payload, actor) {
+export async function createUser(payload, actor) {
   assertPermission(actor, "crear_usuarios");
   const users = loadUsersDirectory();
   const normalized = normalizeUserPayload(payload);
@@ -553,8 +577,7 @@ export function createUser(payload, actor) {
   }
 
   const now = new Date().toISOString();
-  const passwordSalt = crypto.randomBytes(8).toString("hex");
-  const passwordHash = hashPassword(normalized.password, passwordSalt);
+  const { passwordSalt, passwordHash } = await createPasswordCredential(normalized.password);
   const nextUser = normalizeUserRecord({
     id: createId("usr"),
     nombre: normalized.nombre,
@@ -598,7 +621,7 @@ export function createUser(payload, actor) {
   return sanitizeUser(nextUser);
 }
 
-export function updateUser(userId, payload, actor) {
+export async function updateUser(userId, payload, actor) {
   assertPermission(actor, "editar_usuarios");
   const users = loadUsersDirectory();
   const current = users.find((user) => user.id === userId);
@@ -641,11 +664,15 @@ export function updateUser(userId, payload, actor) {
   current.updatedAt = new Date().toISOString();
 
   if (normalizeText(normalized.password)) {
-    current.passwordSalt = crypto.randomBytes(8).toString("hex");
-    current.passwordHash = hashPassword(normalized.password, current.passwordSalt);
+    const credential = await createPasswordCredential(normalized.password);
+    current.passwordSalt = credential.passwordSalt;
+    current.passwordHash = credential.passwordHash;
   }
 
   syncHierarchy(users, current);
+  if (normalizeText(normalized.password)) {
+    invalidateUserSessions(current.id);
+  }
   saveUsers(users);
 
   const organization = getOrganization();
@@ -668,40 +695,176 @@ export function updateUser(userId, payload, actor) {
   return sanitizeUser(current);
 }
 
+function normalizeStoredSession(session) {
+  const storedToken = normalizeText(session?.token);
+  if (!storedToken) {
+    return null;
+  }
+
+  let tokenHash = "";
+  if (/^sha256\$[a-f0-9]{64}$/i.test(storedToken)) {
+    tokenHash = storedToken.toLowerCase();
+  } else if (/^[a-f0-9]{64}$/i.test(storedToken)) {
+    tokenHash = `sha256$${storedToken.toLowerCase()}`;
+  } else {
+    // Los tokens Bearer heredados se invalidan; nunca se vuelven a persistir en texto claro.
+    return null;
+  }
+  return {
+    ...session,
+    token: tokenHash
+  };
+}
+
 function cleanupExpiredSessions(sessions) {
   const now = Date.now();
-  return sessions.filter((session) => {
+  return sessions.map(normalizeStoredSession).filter((session) => {
+    if (!session) {
+      return false;
+    }
     const expiresAt = new Date(session.expiresAt || 0).getTime();
     return Number.isFinite(expiresAt) && expiresAt > now;
   });
 }
 
-export function login(email, password) {
+function invalidateUserSessions(userId) {
+  const sessions = cleanupExpiredSessions(getSessions());
+  saveSessions(sessions.filter((session) => session.userId !== userId));
+}
+
+export function hardenStoredSessions() {
+  const sessions = cleanupExpiredSessions(getSessions());
+  saveSessions(sessions);
+  return sessions.length;
+}
+
+const AUDIT_SECRET_KEYS = new Set(["token", "tokenhash", "hashtoken", "sessiontoken", "sessiontokenhash"]);
+
+function removeAuditSecrets(value) {
+  if (Array.isArray(value)) {
+    let changed = false;
+    const next = value.map((item) => {
+      const result = removeAuditSecrets(item);
+      changed ||= result.changed;
+      return result.value;
+    });
+    return { value: changed ? next : value, changed };
+  }
+  if (!value || typeof value !== "object") {
+    return { value, changed: false };
+  }
+
+  let changed = false;
+  const next = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (AUDIT_SECRET_KEYS.has(key.toLowerCase())) {
+      changed = true;
+      continue;
+    }
+    const result = removeAuditSecrets(item);
+    changed ||= result.changed;
+    next[key] = result.value;
+  }
+  return { value: changed ? next : value, changed };
+}
+
+export function sanitizeHistoricalAuthenticationAudits() {
+  const audits = getAudits();
+  let changedCount = 0;
+  const sanitized = audits.map((audit) => {
+    const isAuthenticationAudit =
+      audit?.modulo === "autenticacion" || audit?.recursoTipo === "sesion" || audit?.accion === "login";
+    if (!isAuthenticationAudit) {
+      return audit;
+    }
+    const result = removeAuditSecrets(audit);
+    if (result.changed) {
+      changedCount += 1;
+    }
+    return result.value;
+  });
+  if (changedCount > 0) {
+    saveAudits(sanitized);
+  }
+  return changedCount;
+}
+
+function getLoginLimitKeys(email, remoteAddress) {
+  return {
+    email: hashSessionToken(`email:${normalizeEmail(email)}`),
+    remote: hashSessionToken(`remote:${normalizeText(remoteAddress) || "unknown"}`),
+    global: "global"
+  };
+}
+
+function getBlockedLoginState(keys) {
+  const states = [
+    loginLimiters.email.check(keys.email),
+    loginLimiters.remote.check(keys.remote),
+    loginLimiters.global.check(keys.global)
+  ];
+  const retryAfterMs = states.reduce((maximum, state) => Math.max(maximum, state.retryAfterMs || 0), 0);
+  return { allowed: states.every((state) => state.allowed), retryAfterMs };
+}
+
+function recordLoginFailure(keys) {
+  loginLimiters.email.recordFailure(keys.email);
+  loginLimiters.remote.recordFailure(keys.remote);
+  loginLimiters.global.recordFailure(keys.global);
+}
+
+export async function login(email, password, { remoteAddress = "unknown" } = {}) {
+  const loginKeys = getLoginLimitKeys(email, remoteAddress);
+  const limitState = getBlockedLoginState(loginKeys);
+  if (!limitState.allowed) {
+    throw createAuthError("Demasiados intentos de inicio de sesion. Intenta mas tarde.", 429, {
+      retryAfterSeconds: Math.max(1, Math.ceil(limitState.retryAfterMs / 1000))
+    });
+  }
+  if (activeLoginKdfs >= getMaxConcurrentLoginKdfs()) {
+    throw createAuthError("Demasiados intentos de inicio de sesion. Intenta mas tarde.", 429, {
+      retryAfterSeconds: 1
+    });
+  }
+
   const users = loadUsersDirectory();
   const user = users.find((candidate) => normalizeEmail(candidate.email) === normalizeEmail(email));
-
-  if (!user || user.estado !== "activo") {
+  const usableUser = user?.estado === "activo" ? user : null;
+  activeLoginKdfs += 1;
+  let verification;
+  try {
+    const dummyPasswordCredential = await dummyPasswordCredentialPromise;
+    verification = await verifyPasswordCredential(password, usableUser || dummyPasswordCredential);
+    if (!verification.valid && usableUser && !String(usableUser.passwordHash || "").startsWith("scrypt$")) {
+      await verifyPasswordCredential(password, dummyPasswordCredential);
+    }
+    if (verification.valid && verification.needsUpgrade) {
+      const credential = await createPasswordCredential(password);
+      usableUser.passwordSalt = credential.passwordSalt;
+      usableUser.passwordHash = credential.passwordHash;
+    }
+  } finally {
+    activeLoginKdfs -= 1;
+  }
+  if (!usableUser || !verification.valid) {
+    recordLoginFailure(loginKeys);
     throw createAuthError("Credenciales invalidas.", 401);
   }
-
-  const expectedHash = hashPassword(password, user.passwordSalt);
-  if (expectedHash !== user.passwordHash) {
-    throw createAuthError("Credenciales invalidas.", 401);
-  }
+  loginLimiters.email.reset(loginKeys.email);
 
   const sessions = cleanupExpiredSessions(getSessions());
   const now = new Date();
-  const token = crypto.randomBytes(24).toString("hex");
+  const token = crypto.randomBytes(32).toString("hex");
   sessions.push({
-    token,
-    userId: user.id,
+    token: formatSessionTokenHash(token),
+    userId: usableUser.id,
     createdAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + SESSION_TTL_MS).toISOString()
+    expiresAt: new Date(now.getTime() + getSessionTtlMs()).toISOString()
   });
   saveSessions(sessions);
 
-  user.ultimoLoginAt = now.toISOString();
-  user.updatedAt = now.toISOString();
+  usableUser.ultimoLoginAt = now.toISOString();
+  usableUser.updatedAt = now.toISOString();
   saveUsers(users);
 
   const organization = getOrganization();
@@ -709,16 +872,16 @@ export function login(email, password) {
   audits.push(
     createAuditEntry({
       organizacionId: organization.id,
-      usuarioId: user.id,
+      usuarioId: usableUser.id,
       accion: "login",
       modulo: "autenticacion",
       recursoTipo: "sesion",
-      recursoId: token,
-      descripcion: `Inicio de sesion del usuario ${user.nombreCompleto || user.email}.`,
+      recursoId: usableUser.id,
+      descripcion: `Inicio de sesion del usuario ${usableUser.nombreCompleto || usableUser.email}.`,
       valorNuevo: {
-        token,
-        userId: user.id,
-        createdAt: now.toISOString()
+        userId: usableUser.id,
+        createdAt: now.toISOString(),
+        expiresAt: new Date(now.getTime() + getSessionTtlMs()).toISOString()
       }
     })
   );
@@ -726,13 +889,13 @@ export function login(email, password) {
 
   return {
     token,
-    user: sanitizeUser(user)
+    user: sanitizeUser(usableUser)
   };
 }
 
 export function logout(token) {
   const sessions = cleanupExpiredSessions(getSessions());
-  const nextSessions = sessions.filter((session) => session.token !== token);
+  const nextSessions = sessions.filter((session) => !sessionTokenHashMatches(token, session.token));
   saveSessions(nextSessions);
 }
 
@@ -744,7 +907,7 @@ export function getSessionUser(token) {
   const sessions = cleanupExpiredSessions(getSessions());
   saveSessions(sessions);
 
-  const session = sessions.find((item) => item.token === token);
+  const session = sessions.find((item) => sessionTokenHashMatches(token, item.token));
   if (!session) {
     return null;
   }

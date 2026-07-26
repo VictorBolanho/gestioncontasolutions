@@ -18,11 +18,12 @@ import {
   defaultTaxes,
   defaultUsers
 } from "../apps/api/src/data/seed-data.js";
+import { resolveConfiguredDataDirectory } from "../apps/api/src/lib/data-directory.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
-const dataDir = path.join(rootDir, "apps", "api", "data");
+const dataDir = resolveConfiguredDataDirectory(path.join(rootDir, "apps", "api", "data"));
 const uploadsDir = path.join(dataDir, "uploads", "rut");
 
 const files = {

@@ -1,339 +1,192 @@
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { getStorageDriver } from "../db/database-config.js";
 import {
-  defaultAudits,
-  defaultCompanyObligations,
-  defaultCompanies,
-  defaultDocuments,
-  defaultExtractions,
-  defaultFiscalCalendars,
-  defaultFiscalCalendarVersions,
-  defaultFiscalTasks,
-  defaultInferredTaxRules,
-  defaultInternalAlerts,
-  defaultOrganization,
-  defaultSessions,
-  defaultTaxRules,
-  defaultTaxes,
-  defaultUsers
-} from "../data/seed-data.js";
+  ensureDatabaseStorageSync,
+  getCollectionFromDatabaseSync,
+  saveCollectionToDatabaseSync
+} from "../db/database-storage-bridge.js";
+import {
+  ensureJsonStorage,
+  getAuditsFromJson,
+  getCompaniesFromJson,
+  getCompanyObligationsFromJson,
+  getDocumentsFromJson,
+  getExtractionsFromJson,
+  getFiscalCalendarsFromJson,
+  getFiscalCalendarVersionsFromJson,
+  getFiscalTasksFromJson,
+  getInferredTaxRulesFromJson,
+  getInternalAlertsFromJson,
+  getOrganizationFromJson,
+  getSessionsFromJson,
+  getTaxRulesFromJson,
+  getTaxesFromJson,
+  getUploadsDirFromJson,
+  getUsersFromJson,
+  saveAuditsToJson,
+  saveCompaniesToJson,
+  saveCompanyObligationsToJson,
+  saveDocumentsToJson,
+  saveExtractionsToJson,
+  saveFiscalCalendarsToJson,
+  saveFiscalCalendarVersionsToJson,
+  saveFiscalTasksToJson,
+  saveInferredTaxRulesToJson,
+  saveInternalAlertsToJson,
+  saveOrganizationToJson,
+  saveSessionsToJson,
+  saveTaxRulesToJson,
+  saveTaxesToJson,
+  saveUsersToJson
+} from "./storage-json-driver.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const dataDir = path.resolve(__dirname, "../../data");
-const uploadsDir = path.join(dataDir, "uploads", "rut");
-
-const files = {
-  organization: path.join(dataDir, "organization.json"),
-  companies: path.join(dataDir, "companies.json"),
-  documents: path.join(dataDir, "documents.json"),
-  extractions: path.join(dataDir, "extractions.json"),
-  audits: path.join(dataDir, "audits.json"),
-  taxes: path.join(dataDir, "taxes.json"),
-  taxRules: path.join(dataDir, "tax-rules.json"),
-  inferredTaxRules: path.join(dataDir, "inferred-tax-rules.json"),
-  companyObligations: path.join(dataDir, "company-obligations.json"),
-  fiscalCalendars: path.join(dataDir, "fiscal-calendars.json"),
-  fiscalCalendarVersions: path.join(dataDir, "fiscal-calendar-versions.json"),
-  fiscalTasks: path.join(dataDir, "fiscal-tasks.json"),
-  internalAlerts: path.join(dataDir, "internal-alerts.json"),
-  users: path.join(dataDir, "users.json"),
-  sessions: path.join(dataDir, "sessions.json")
-};
-
-function ensureFile(filePath, defaultValue) {
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, JSON.stringify(defaultValue, null, 2));
-  }
+function useDatabaseDriver() {
+  return getStorageDriver() === "database";
 }
 
-function ensureSeedEntries(filePath, seedItems, getKey = (item) => item?.id) {
-  ensureFile(filePath, seedItems);
-  const currentItems = readJson(filePath);
-  if (!Array.isArray(currentItems) || !Array.isArray(seedItems)) {
-    return;
+function readCollection(collectionName, jsonGetter) {
+  if (useDatabaseDriver()) {
+    return getCollectionFromDatabaseSync(collectionName);
   }
-
-  const existingKeys = new Set(currentItems.map((item) => getKey(item)).filter(Boolean));
-  const missingItems = seedItems.filter((item) => {
-    const key = getKey(item);
-    return key && !existingKeys.has(key);
-  });
-
-  if (missingItems.length > 0) {
-    writeJson(filePath, [...currentItems, ...missingItems]);
-  }
+  return jsonGetter();
 }
 
-function syncFiscalCalendarSeedMetadata() {
-  ensureFile(files.fiscalCalendars, defaultFiscalCalendars);
-  const currentItems = readJson(files.fiscalCalendars);
-  if (!Array.isArray(currentItems)) {
+function writeCollection(collectionName, value, jsonSaver) {
+  if (useDatabaseDriver()) {
+    saveCollectionToDatabaseSync(collectionName, value);
     return;
   }
-
-  const seedCalendarMap = new Map(defaultFiscalCalendars.map((item) => [item.id, item]));
-  let changed = false;
-
-  const nextItems = currentItems.map((item) => {
-    const seedCalendar = seedCalendarMap.get(item?.id);
-    if (!seedCalendar) {
-      return item;
-    }
-
-    const nextItem = { ...item };
-
-    if ((item.fuenteCalendario === "semilla_local" || !item.fuenteCalendario) && seedCalendar.fuenteCalendario === "DIAN") {
-      changed = true;
-      nextItem.fuenteCalendario = "DIAN";
-    }
-
-    if ((!item.eventoFiscalClave && seedCalendar.eventoFiscalClave) || (!item.eventoFiscal && seedCalendar.eventoFiscal)) {
-      changed = true;
-      nextItem.eventoFiscalClave = item.eventoFiscalClave || seedCalendar.eventoFiscalClave || "";
-      nextItem.eventoFiscal = item.eventoFiscal || seedCalendar.eventoFiscal || "";
-    }
-
-    return nextItem;
-  });
-
-  if (changed) {
-    writeJson(files.fiscalCalendars, nextItems);
-  }
-}
-
-function syncCompanyObligationMetadata() {
-  ensureFile(files.companyObligations, defaultCompanyObligations);
-  const obligations = readJson(files.companyObligations);
-  if (!Array.isArray(obligations)) {
-    return;
-  }
-
-  let changed = false;
-  const nextItems = obligations.map((item) => {
-    if (item?.impuestoId !== "tax_rst" || item?.eventoFiscalClave) {
-      return item;
-    }
-
-    changed = true;
-    return {
-      ...item,
-      eventoFiscalClave: "anticipo_bimestral",
-      eventoFiscal: item?.eventoFiscal || "Anticipo bimestral RST"
-    };
-  });
-
-  if (changed) {
-    writeJson(files.companyObligations, nextItems);
-  }
-}
-
-function syncInferredRuleMetadata() {
-  ensureFile(files.inferredTaxRules, defaultInferredTaxRules);
-  const rules = readJson(files.inferredTaxRules);
-  if (!Array.isArray(rules)) {
-    return;
-  }
-
-  let changed = false;
-  const nextRules = rules.map((rule) => {
-    if (rule?.id === "matrix_rst_regimen_simple" && rule?.estado !== "inactivo") {
-      changed = true;
-      return {
-        ...rule,
-        estado: "inactivo"
-      };
-    }
-
-    return rule;
-  });
-
-  if (changed) {
-    writeJson(files.inferredTaxRules, nextRules);
-  }
-}
-
-function syncDefaultUserAssignments() {
-  const users = getUsers();
-  const companies = getCompanies();
-  const availableCompanyIds = companies.map((company) => company.id).filter(Boolean);
-
-  if (availableCompanyIds.length === 0) {
-    return;
-  }
-
-  let changed = false;
-  for (const user of users) {
-    if (!["usr_senior", "usr_junior_paula", "usr_junior_sara"].includes(user.id)) {
-      continue;
-    }
-
-    const currentAssignments = Array.isArray(user.empresasAsignadas) ? user.empresasAsignadas : [];
-    const validAssignments = currentAssignments.filter((companyId) => availableCompanyIds.includes(companyId));
-
-    if (validAssignments.length === 0) {
-      user.empresasAsignadas = [...availableCompanyIds];
-      changed = true;
-    }
-  }
-
-  if (changed) {
-    saveUsers(users);
-  }
+  jsonSaver(value);
 }
 
 export function ensureStorage() {
-  fs.mkdirSync(dataDir, { recursive: true });
-  fs.mkdirSync(uploadsDir, { recursive: true });
+  if (useDatabaseDriver()) {
+    ensureDatabaseStorageSync();
+    return;
+  }
 
-  ensureFile(files.organization, defaultOrganization);
-  ensureFile(files.companies, defaultCompanies);
-  ensureFile(files.documents, defaultDocuments);
-  ensureFile(files.extractions, defaultExtractions);
-  ensureFile(files.audits, defaultAudits);
-  ensureSeedEntries(files.taxes, defaultTaxes);
-  ensureSeedEntries(files.taxRules, defaultTaxRules);
-  ensureSeedEntries(files.inferredTaxRules, defaultInferredTaxRules);
-  syncInferredRuleMetadata();
-  ensureFile(files.companyObligations, defaultCompanyObligations);
-  syncCompanyObligationMetadata();
-  ensureSeedEntries(files.fiscalCalendars, defaultFiscalCalendars);
-  syncFiscalCalendarSeedMetadata();
-  ensureFile(files.fiscalCalendarVersions, defaultFiscalCalendarVersions);
-  ensureFile(files.fiscalTasks, defaultFiscalTasks);
-  ensureFile(files.internalAlerts, defaultInternalAlerts);
-  // Users should be seeded only when the file does not exist, so manual cleanup
-  // or admin-only test setups are preserved across API restarts.
-  ensureFile(files.users, defaultUsers);
-  ensureFile(files.sessions, defaultSessions);
-  syncDefaultUserAssignments();
-}
-
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf-8"));
-}
-
-function writeJson(filePath, value) {
-  fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+  ensureJsonStorage();
 }
 
 export function getOrganization() {
-  return readJson(files.organization);
+  return readCollection("organization", getOrganizationFromJson);
+}
+
+export function saveOrganization(organization) {
+  writeCollection("organization", organization, saveOrganizationToJson);
 }
 
 export function getCompanies() {
-  return readJson(files.companies);
+  return readCollection("companies", getCompaniesFromJson);
 }
 
 export function saveCompanies(companies) {
-  writeJson(files.companies, companies);
+  writeCollection("companies", companies, saveCompaniesToJson);
 }
 
 export function getDocuments() {
-  return readJson(files.documents);
+  return readCollection("documents", getDocumentsFromJson);
 }
 
 export function saveDocuments(documents) {
-  writeJson(files.documents, documents);
+  writeCollection("documents", documents, saveDocumentsToJson);
 }
 
 export function getExtractions() {
-  return readJson(files.extractions);
+  return readCollection("extractions", getExtractionsFromJson);
 }
 
 export function saveExtractions(extractions) {
-  writeJson(files.extractions, extractions);
+  writeCollection("extractions", extractions, saveExtractionsToJson);
 }
 
 export function getAudits() {
-  return readJson(files.audits);
+  return readCollection("audits", getAuditsFromJson);
 }
 
 export function saveAudits(audits) {
-  writeJson(files.audits, audits);
+  writeCollection("audits", audits, saveAuditsToJson);
 }
 
 export function getUploadsDir() {
-  return uploadsDir;
+  return getUploadsDirFromJson();
 }
 
 export function getTaxes() {
-  return readJson(files.taxes);
+  return readCollection("taxes", getTaxesFromJson);
 }
 
 export function saveTaxes(taxes) {
-  writeJson(files.taxes, taxes);
+  writeCollection("taxes", taxes, saveTaxesToJson);
 }
 
 export function getTaxRules() {
-  return readJson(files.taxRules);
+  return readCollection("taxRules", getTaxRulesFromJson);
 }
 
 export function saveTaxRules(taxRules) {
-  writeJson(files.taxRules, taxRules);
+  writeCollection("taxRules", taxRules, saveTaxRulesToJson);
 }
 
 export function getInferredTaxRules() {
-  return readJson(files.inferredTaxRules);
+  return readCollection("inferredTaxRules", getInferredTaxRulesFromJson);
 }
 
 export function saveInferredTaxRules(inferredTaxRules) {
-  writeJson(files.inferredTaxRules, inferredTaxRules);
+  writeCollection("inferredTaxRules", inferredTaxRules, saveInferredTaxRulesToJson);
 }
 
 export function getCompanyObligations() {
-  return readJson(files.companyObligations);
+  return readCollection("companyObligations", getCompanyObligationsFromJson);
 }
 
 export function saveCompanyObligations(companyObligations) {
-  writeJson(files.companyObligations, companyObligations);
+  writeCollection("companyObligations", companyObligations, saveCompanyObligationsToJson);
 }
 
 export function getFiscalCalendars() {
-  return readJson(files.fiscalCalendars);
+  return readCollection("fiscalCalendars", getFiscalCalendarsFromJson);
 }
 
 export function saveFiscalCalendars(fiscalCalendars) {
-  writeJson(files.fiscalCalendars, fiscalCalendars);
+  writeCollection("fiscalCalendars", fiscalCalendars, saveFiscalCalendarsToJson);
 }
 
 export function getFiscalCalendarVersions() {
-  return readJson(files.fiscalCalendarVersions);
+  return readCollection("fiscalCalendarVersions", getFiscalCalendarVersionsFromJson);
 }
 
 export function saveFiscalCalendarVersions(fiscalCalendarVersions) {
-  writeJson(files.fiscalCalendarVersions, fiscalCalendarVersions);
+  writeCollection("fiscalCalendarVersions", fiscalCalendarVersions, saveFiscalCalendarVersionsToJson);
 }
 
 export function getFiscalTasks() {
-  return readJson(files.fiscalTasks);
+  return readCollection("fiscalTasks", getFiscalTasksFromJson);
 }
 
 export function saveFiscalTasks(fiscalTasks) {
-  writeJson(files.fiscalTasks, fiscalTasks);
+  writeCollection("fiscalTasks", fiscalTasks, saveFiscalTasksToJson);
 }
 
 export function getInternalAlerts() {
-  return readJson(files.internalAlerts);
+  return readCollection("internalAlerts", getInternalAlertsFromJson);
 }
 
 export function saveInternalAlerts(internalAlerts) {
-  writeJson(files.internalAlerts, internalAlerts);
+  writeCollection("internalAlerts", internalAlerts, saveInternalAlertsToJson);
 }
 
 export function getUsers() {
-  return readJson(files.users);
+  return readCollection("users", getUsersFromJson);
 }
 
 export function saveUsers(users) {
-  writeJson(files.users, users);
+  writeCollection("users", users, saveUsersToJson);
 }
 
 export function getSessions() {
-  return readJson(files.sessions);
+  return readCollection("sessions", getSessionsFromJson);
 }
 
 export function saveSessions(sessions) {
-  writeJson(files.sessions, sessions);
+  writeCollection("sessions", sessions, saveSessionsToJson);
 }

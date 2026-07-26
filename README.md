@@ -6,6 +6,10 @@ Los documentos funcionales y visuales base del proyecto son:
 
 - `docs/planning/fases-del-desarrollo.txt`
 - `docs/planning/plan-visual-corporativo.txt`
+- `docs/database-architecture.md`
+- `docs/json-to-database-migration.md`
+- `docs/local-database-setup.md`
+- `docs/backup-restore-initial.md`
 
 ## Estado actual del proyecto
 
@@ -143,6 +147,19 @@ Incluye:
 - uso de tareas y alertas reconciliadas como fuente unica de verdad;
 - deteccion de huecos operativos como obligaciones activas sin tarea fiscal o tareas proximas sin responsable.
 
+### Fase 8 - Base de datos y persistencia real
+
+Estado: en progreso.
+
+Avance actual:
+
+- driver seleccionable `json` o `database`;
+- infraestructura PostgreSQL inicial;
+- migraciones SQL versionadas;
+- semillas tecnicas y demo para base de datos;
+- script de migracion desde JSON con `dry-run`;
+- capa de persistencia preparada para transicion progresiva.
+
 ## Estructura
 
 - `apps/api`: servidor API HTTP en Node nativo.
@@ -175,6 +192,34 @@ O con script:
 
 ```powershell
 npm run start:web
+```
+
+## Drivers de almacenamiento
+
+Modo actual seguro:
+
+```powershell
+STORAGE_DRIVER=json
+```
+
+Modo de base de datos:
+
+```powershell
+STORAGE_DRIVER=database
+```
+
+En modo `database` debes aplicar migraciones antes de iniciar la API.
+
+## Comandos de base de datos
+
+```powershell
+npm run db:migrate
+npm run db:migrate:rollback
+npm run db:seed
+npm run db:seed:demo
+npm run db:migrate-json:dry-run
+npm run db:migrate-json
+npm run test:db
 ```
 
 ## Credenciales de desarrollo y prueba
@@ -350,19 +395,19 @@ node scripts/reset-fiscal-data.js --confirm --keep-calendar-seeds
 
 ## Limitaciones actuales
 
-- Persistencia local en JSON, no base de datos real.
+- La persistencia operativa por defecto sigue en JSON mientras se cierra la transicion a PostgreSQL.
 - Catalogo CIIU inicial, no completo.
 - Extraccion RUT basada en texto PDF, no OCR completo.
 - Catalogo de impuestos editable, pero aun sin importacion masiva.
 - Calendario fiscal manual y semilla base; sin importacion DIAN/municipal automatizada.
 - Ya existe dashboard operativo y gerencial conectado a tareas y alertas reconciliadas.
 - No existe portal cliente todavia.
-- La persistencia de usuarios y sesiones sigue siendo local en JSON.
 - El envio real de correo sigue fuera del alcance actual.
 - El proyecto no define scripts formales de `lint` ni `build` todavia.
+- Las pruebas de integracion real contra PostgreSQL requieren un entorno con base de datos disponible.
 
 ## Que queda pendiente
 
-Siguiente fase recomendada:
+Siguiente prioridad:
 
-- Fase 8: configuracion general del sistema para reglas, catalogos y parametros editables sin tocar codigo.
+- continuar Fase 8 hasta cerrar la integracion operacional completa con PostgreSQL antes de abrir Fase 9.

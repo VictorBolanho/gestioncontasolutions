@@ -349,6 +349,7 @@ function auditAndSave(audits, entry) {
 
 function normalizeCalendarPayload(payload = {}) {
   return normalizeFiscalCalendarRecord({
+    organizacionId: normalizeText(payload.organizacionId),
     impuestoId: normalizeText(payload.impuestoId),
     anio: Number(payload.anio),
     periodo: normalizeText(payload.periodo),
@@ -907,6 +908,7 @@ export function createFiscalCalendar(payload, actor = "usr_admin") {
   const calendar = {
     id: createId("fcal"),
     ...normalized,
+    organizacionId: normalized.organizacionId || organization.id,
     createdAt: now,
     updatedAt: now,
     creadoPor: actor,
@@ -939,6 +941,7 @@ export function createFiscalCalendar(payload, actor = "usr_admin") {
 
 export function updateFiscalCalendar(calendarId, payload, actor = "usr_admin") {
   const taxes = getTaxes();
+  const organization = getOrganization();
   const calendars = getFiscalCalendars();
   const calendar = calendars.find((item) => item.id === calendarId);
 
@@ -955,6 +958,7 @@ export function updateFiscalCalendar(calendarId, payload, actor = "usr_admin") {
       version: calendar.version
     }),
     id: calendar.id,
+    organizacionId: normalizeText(calendar.organizacionId) || organization.id,
     createdAt: calendar.createdAt,
     creadoPor: calendar.creadoPor,
     updatedAt: new Date().toISOString(),
@@ -976,7 +980,6 @@ export function updateFiscalCalendar(calendarId, payload, actor = "usr_admin") {
   Object.assign(calendar, next);
   saveFiscalCalendars(calendars);
 
-  const organization = getOrganization();
   const audits = getAudits();
   auditAndSave(
     audits,
@@ -1126,6 +1129,7 @@ export function deleteFiscalCalendar(calendarId, actor = "usr_admin") {
 
 export function replaceFiscalCalendar(calendarId, payload, actor = "usr_admin") {
   const taxes = getTaxes();
+  const organization = getOrganization();
   const calendars = getFiscalCalendars();
   const versions = getFiscalCalendarVersions();
   const calendar = calendars.find((item) => item.id === calendarId);
@@ -1150,6 +1154,7 @@ export function replaceFiscalCalendar(calendarId, payload, actor = "usr_admin") 
   const nextCalendar = {
     id: createId("fcal"),
     ...replacement,
+    organizacionId: replacement.organizacionId || organization.id,
     createdAt: now,
     updatedAt: now,
     creadoPor: actor,
@@ -1173,7 +1178,6 @@ export function replaceFiscalCalendar(calendarId, payload, actor = "usr_admin") 
   saveFiscalCalendars(calendars);
   saveFiscalCalendarVersions(versions);
 
-  const organization = getOrganization();
   const audits = getAudits();
   auditAndSave(
     audits,

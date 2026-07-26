@@ -12,8 +12,24 @@
     "dev:web": "node apps/web/server.js",
     "start:api": "node apps/api/src/server.js",
     "start:web": "node apps/web/server.js",
+    "db:migrate": "node scripts/db-migrate.js",
+    "db:migrate:rollback": "node scripts/db-migrate-rollback.js",
+    "db:seed": "node scripts/db-seed.js technical",
+    "db:seed:demo": "node scripts/db-seed.js demo",
+    "db:reset:test": "node scripts/db-reset-test.js",
+    "db:migrate-json": "node scripts/db-migrate-json.js",
+    "db:migrate-json:dry-run": "node scripts/db-migrate-json.js --dry-run",
+    "test": "node scripts/run-all-tests.js",
+    "test:db": "node scripts/test-db.js",
+    "test:auth-security": "node --test scripts/auth-security-test.js",
+    "test:calendar-migration": "node --test scripts/calendar-migration-test.js",
+    "test:postgres-calendar": "node scripts/postgres-calendar-migration-test.js",
+    "test:postgres-reconcile": "node scripts/postgres-full-reconciliation-test.js",
     "smoke:test": "node scripts/smoke-test.js",
     "reset:dev-data": "node scripts/reset-dev-data.js --confirm",
     "reset:fiscal-data": "node scripts/reset-fiscal-data.js --confirm"
+  },
+  "dependencies": {
+    "pg": "^8.22.0"
   }
 }

@@ -29,7 +29,7 @@ El sistema se divide en dos aplicaciones principales:
 - `apps/web`: interfaz operativa usada por el equipo.
 - `apps/api`: API HTTP que ejecuta reglas, validaciones, persistencia y auditoria.
 
-La persistencia actual es local en JSON dentro de `apps/api/data`. No usa base de datos relacional todavia. Cada modulo guarda en su propio archivo:
+La persistencia operativa actual sigue siendo local en JSON dentro de `apps/api/data`, pero Fase 8 ya dejo preparada la transicion controlada a PostgreSQL mediante un driver seleccionable, migraciones SQL y scripts de semillas y migracion. Cada modulo mantiene hoy su fuente JSON:
 
 - `users.json`
 - `sessions.json`
@@ -45,6 +45,13 @@ La persistencia actual es local en JSON dentro de `apps/api/data`. No usa base d
 - `fiscal-tasks.json`
 - `internal-alerts.json`
 - `audits.json`
+
+La base tecnica de Fase 8 agrega ademas:
+
+- `apps/api/src/lib/storage.js` como selector de driver por entorno
+- `apps/api/src/lib/storage-json-driver.js` como adaptador JSON reversible
+- `apps/api/src/db/*` para configuracion, cliente PostgreSQL, definiciones de entidades, migraciones y semillas
+- `scripts/db-migrate.js`, `scripts/db-seed.js` y `scripts/db-migrate-json.js` para operacion controlada de base de datos
 
 ## 3. Seguridad, usuarios y acceso
 
@@ -1000,12 +1007,13 @@ Orden funcional sugerido para operar el sistema:
 
 La implementacion actual todavia tiene estas fronteras:
 
-- persistencia local en JSON, no multiusuario robusto de alta concurrencia
+- el modo operativo por defecto sigue en JSON mientras se completa la validacion real sobre PostgreSQL
 - no hay envio real de correo o notificaciones externas
 - no hay integracion directa con DIAN o MUISCA
 - el motor DIAN actual trabaja por heuristicas y reglas internas
 - solo existe exportacion CSV gerencial; no hay exportacion avanzada adicional
 - no hay bitacora visual completa de versiones de empresa, aunque si hay auditoria
+- las pruebas reales contra PostgreSQL dependen de un entorno con base disponible
 
 ## 22. Pruebas de cierre de Fase 6 y Fase 7
 
@@ -1043,3 +1051,10 @@ Hoy el sistema ya cubre un flujo serio de operacion:
 - exporta reportes CSV confiables por alcance visible
 
 Eso lo convierte en una base funcional para operar clientes tributarios con trazabilidad y revision humana antes de automatizar decisiones sensibles o abrir nuevos canales de notificacion.
+
+Como siguiente evolucion tecnica inmediata, Fase 8 ya dejo encaminada la migracion a PostgreSQL con una arquitectura reversible y documentada en:
+
+- `docs/database-architecture.md`
+- `docs/json-to-database-migration.md`
+- `docs/local-database-setup.md`
+- `docs/backup-restore-initial.md`

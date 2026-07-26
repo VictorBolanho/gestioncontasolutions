@@ -115,14 +115,25 @@ Incluye:
 - deteccion de huecos operativos como obligaciones activas sin tarea fiscal y tareas proximas sin responsable;
 - mantenimiento de una unica fuente de verdad basada en tareas visibles y alertas reconciliadas.
 
-### Fase 8
+### Fase 8 - Base de datos y persistencia real
 
-Estado: pendiente.
+Estado: en progreso.
 
-- configuracion general;
-- reglas editables del sistema;
-- ajustes operativos sin tocar codigo;
-- parametrizacion progresiva de alertas, catalogos y plantillas.
+Avance actual:
+
+- driver seleccionable `json` o `database`;
+- infraestructura inicial de PostgreSQL;
+- migraciones SQL versionadas y rollback inicial;
+- semillas tecnicas y demo para base de datos;
+- script de migracion desde JSON con `dry-run`;
+- capa de persistencia transicional sin romper Fases 1 a 7.
+
+Pendiente de cierre:
+
+- validar operacion real sobre PostgreSQL con una base disponible;
+- reforzar pruebas reales de transaccion, concurrencia e idempotencia;
+- completar la integracion operacional definitiva de servicios sobre base de datos;
+- preparar el corte controlado de JSON hacia `database` como modo principal.
 
 ### Fase 9
 

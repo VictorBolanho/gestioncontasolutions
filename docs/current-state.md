@@ -13,6 +13,10 @@ Fecha de cierre del estado actual: 2026-07-10
 - Fase 6 - Alertas internas, vencimientos y sincronizacion operativa
 - Fase 7 - Dashboard gerencial, reportes e indicadores
 
+## Fase en progreso
+
+- Fase 8 - Base de datos y persistencia real
+
 ## Funcionalidades funcionando
 
 - API y frontend separados y ejecutables.
@@ -63,6 +67,12 @@ Fecha de cierre del estado actual: 2026-07-10
 - Indicadores de cumplimiento, vencimientos, riesgo y carga operativa calculados sobre tareas visibles.
 - Reportes gerenciales consistentes con el dashboard y exportacion CSV protegida por permisos.
 - Alertas gerenciales para huecos operativos como obligaciones activas sin tarea fiscal o tareas proximas sin responsable.
+- Driver de persistencia seleccionable por `STORAGE_DRIVER=json|database`.
+- Capa JSON original aislada en `storage-json-driver.js` para una transicion reversible.
+- Infraestructura inicial de PostgreSQL con pool, configuracion por entorno y worker dedicado.
+- Esquema relacional versionado con migraciones SQL y rollback controlado.
+- Semillas tecnicas y demo preparadas para modo `database`.
+- Script de migracion desde JSON con validacion, conteos y `dry-run`.
 
 ## Endpoints disponibles
 
@@ -133,6 +143,15 @@ Fecha de cierre del estado actual: 2026-07-10
 - `apps/api/src/lib/dashboard-service.js`
 - `apps/api/src/lib/client-report-service.js`
 - `apps/api/src/lib/storage.js`
+- `apps/api/src/lib/storage-json-driver.js`
+- `apps/api/src/db/database-config.js`
+- `apps/api/src/db/postgres-client.js`
+- `apps/api/src/db/entity-definitions.js`
+- `apps/api/src/db/database-storage.js`
+- `apps/api/src/db/database-storage-worker.js`
+- `apps/api/src/db/database-storage-bridge.js`
+- `apps/api/src/db/migrations.js`
+- `apps/api/src/db/seed.js`
 - `apps/web/src/app.js`
 - `apps/web/styles.css`
 - `packages/domain/index.js`
@@ -140,6 +159,12 @@ Fecha de cierre del estado actual: 2026-07-10
 - `scripts/alerts-consistency-test.js`
 - `scripts/alerts-filters-permissions-test.js`
 - `scripts/alerts-phase6-closure-test.js`
+- `scripts/db-migrate.js`
+- `scripts/db-migrate-rollback.js`
+- `scripts/db-seed.js`
+- `scripts/db-reset-test.js`
+- `scripts/db-migrate-json.js`
+- `scripts/test-db.js`
 - `scripts/smoke-test.js`
 
 ## Flujo validado de Fase 6 y 7
@@ -182,6 +207,8 @@ Fecha de cierre del estado actual: 2026-07-10
 - `leida` requiere acceso visible a la alerta; `atendida` y `descartada` requieren `gestionar_alertas`.
 - El dashboard excluye alertas terminales de sus indicadores activos.
 - La exportacion CSV gerencial exige `exportar_reportes`.
+- La aplicacion arranca en un unico modo de persistencia definido por `STORAGE_DRIVER`.
+- En modo `database`, la API requiere migraciones aplicadas antes de operar.
 
 ## Pruebas y validaciones ejecutadas
 
@@ -199,6 +226,23 @@ Validaciones de sintaxis:
 - `node --check scripts/dashboard-phase7-test.js`
 - `node --check scripts/clean-onboarding-test.js`
 - `node --check scripts/role-permissions-test.js`
+- `node --check apps/api/src/lib/storage.js`
+- `node --check apps/api/src/lib/storage-json-driver.js`
+- `node --check apps/api/src/db/database-config.js`
+- `node --check apps/api/src/db/postgres-client.js`
+- `node --check apps/api/src/db/entity-definitions.js`
+- `node --check apps/api/src/db/database-storage.js`
+- `node --check apps/api/src/db/database-storage-worker.js`
+- `node --check apps/api/src/db/database-storage-bridge.js`
+- `node --check apps/api/src/db/migrations.js`
+- `node --check apps/api/src/db/seed.js`
+- `node --check scripts/db-migrate.js`
+- `node --check scripts/db-migrate-rollback.js`
+- `node --check scripts/db-seed.js`
+- `node --check scripts/db-reset-test.js`
+- `node --check scripts/db-migrate-json.js`
+- `node --check scripts/test-db.js`
+- `node --check scripts/run-all-tests.js`
 
 Pruebas funcionales ejecutadas en secuencia:
 
@@ -210,6 +254,8 @@ Pruebas funcionales ejecutadas en secuencia:
 - `node scripts/alerts-phase6-closure-test.js`
 - `node scripts/dashboard-phase7-test.js`
 - `node scripts/smoke-test.js`
+- `node scripts/test-db.js`
+- `node scripts/db-migrate-json.js --dry-run`
 
 Notas de validacion:
 
@@ -219,19 +265,20 @@ Notas de validacion:
 
 ## Limitaciones actuales
 
-- Persistencia local en JSON, no base de datos real.
+- La persistencia operativa por defecto sigue en JSON mientras se cierra la transicion a PostgreSQL.
 - Catalogo CIIU inicial, no completo.
 - Extraccion de RUT basada en texto PDF, no OCR completo.
 - Catalogo de impuestos editable pero aun sin importacion masiva.
 - Calendario fiscal manual, sin importacion automatica DIAN o municipal.
 - No hay envio real de correos ni notificaciones externas todavia.
 - No existe portal cliente todavia.
-- Sesiones y usuarios siguen en persistencia local JSON.
+- Las pruebas de integracion real contra PostgreSQL requieren una base disponible por entorno.
 
 ## Proxima fase recomendada
 
 Fase 8:
 
-- consolidar configuracion general editable para alertas, catalogos y parametros operativos;
-- mover reglas sensibles hoy embebidas en codigo a una capa configurable con auditoria;
-- preparar mejor la evolucion a portal cliente y solicitudes documentales.
+- validar la operacion real sobre PostgreSQL con una base disponible;
+- convertir la capa transicional en integracion operacional completa;
+- ampliar pruebas reales de transaccion, concurrencia y recuperacion;
+- cerrar el corte controlado de JSON hacia base de datos.

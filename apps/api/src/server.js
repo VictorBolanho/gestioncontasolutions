@@ -10,6 +10,7 @@ import {
   searchCiiuActivities
 } from "../../../packages/domain/index.js";
 import { readJsonBody, readRequestBody, sendEmpty, sendJson } from "./lib/http.js";
+import { getAuthenticationErrorResponse } from "./lib/auth-http.js";
 import { parseMultipartFormData } from "./lib/multipart.js";
 import { generateClientSummaryReport } from "./lib/client-report-service.js";
 import {
@@ -90,15 +91,19 @@ import {
   createUser,
   getSessionSummary,
   getSessionUser,
+  hardenStoredSessions,
   listUsers,
   listSupervisedUsers,
   login,
   logout,
+  sanitizeHistoricalAuthenticationAudits,
   updateUser
 } from "./lib/auth-service.js";
 
 const port = Number(process.env.PORT || 4000);
 ensureStorage();
+hardenStoredSessions();
+sanitizeHistoricalAuthenticationAudits();
 
 function sendActionError(response, error) {
   const statusCode = Number(error?.statusCode || 500);
@@ -120,6 +125,14 @@ function sendApiError(response, error, fallbackMessage = "No se pudo completar l
   sendJson(response, Number(error?.statusCode || 400), {
     error: error?.message || fallbackMessage
   });
+}
+
+function sendAuthenticationError(response, error) {
+  const result = getAuthenticationErrorResponse(error);
+  for (const [name, value] of Object.entries(result.headers || {})) {
+    response.setHeader(name, value);
+  }
+  sendJson(response, result.statusCode, result.payload);
 }
 
 function getBearerToken(request) {
@@ -318,10 +331,12 @@ const server = http.createServer((request, response) => {
     Promise.resolve()
       .then(async () => {
         const payload = await readJsonBody(request);
-        const result = login(payload.email, payload.password);
+        const result = await login(payload.email, payload.password, {
+          remoteAddress: request.socket.remoteAddress || "unknown"
+        });
         sendJson(response, 200, result);
       })
-      .catch((error) => sendApiError(response, error, "No fue posible iniciar sesion."));
+      .catch((error) => sendAuthenticationError(response, error));
     return;
   }
 
@@ -1666,7 +1681,7 @@ const server = http.createServer((request, response) => {
     Promise.resolve()
       .then(async () => {
         const payload = await readJsonBody(request);
-        const result = createUser(payload, currentUser);
+        const result = await createUser(payload, currentUser);
         sendJson(response, 201, result);
       })
       .catch((error) => sendApiError(response, error));
@@ -1678,7 +1693,7 @@ const server = http.createServer((request, response) => {
       .then(async () => {
         const userId = url.pathname.split("/")[3];
         const payload = await readJsonBody(request);
-        const result = updateUser(userId, payload, currentUser);
+        const result = await updateUser(userId, payload, currentUser);
         sendJson(response, 200, result);
       })
       .catch((error) => sendApiError(response, error));

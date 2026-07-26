@@ -1,17 +1,22 @@
-import crypto from "node:crypto";
 import { COMPANY_STATUS, DEFAULT_THEME } from "../../../../packages/domain/index.js";
 import { defaultInferredTaxRules } from "./inferred-tax-matrix.js";
+import { createPasswordCredential, hashSessionToken } from "../lib/auth-crypto.js";
 
-const DEV_SEED_PASSWORD = String(process.env.DEV_SEED_PASSWORD || "dev-only-local-not-for-production").trim();
+const NODE_ENV = String(process.env.NODE_ENV || "development").trim().toLowerCase();
+const IS_PRODUCTION = NODE_ENV === "production";
+const DEV_SEED_PASSWORD = IS_PRODUCTION
+  ? ""
+  : String(process.env.DEV_SEED_PASSWORD || "dev-only-local-not-for-production").trim();
 
-function buildSeedCredentials(seedKey) {
-  const passwordSalt = crypto.createHash("sha256").update(`seed-salt:${seedKey}`).digest("hex").slice(0, 16);
-  const passwordHash = crypto.createHash("sha256").update(`${passwordSalt}:${DEV_SEED_PASSWORD}`).digest("hex");
-  return {
-    passwordSalt,
-    passwordHash
-  };
+async function buildSeedCredentials(seedKey) {
+  if (IS_PRODUCTION) {
+    throw new Error("Los usuarios demo estan prohibidos cuando NODE_ENV=production.");
+  }
+  const salt = hashSessionToken(`gestorconta-seed:${seedKey}`).slice(0, 32);
+  return createPasswordCredential(DEV_SEED_PASSWORD, { salt });
 }
+
+export const demoSeedMode = Object.freeze({ enabled: !IS_PRODUCTION, environment: NODE_ENV });
 
 export const defaultOrganization = {
   id: "org_contasolutions",
@@ -20,7 +25,7 @@ export const defaultOrganization = {
   temaVisual: DEFAULT_THEME
 };
 
-export const defaultUsers = [
+export const defaultDemoUsers = IS_PRODUCTION ? [] : [
   {
     id: "usr_admin",
     nombre: "Demo",
@@ -34,7 +39,7 @@ export const defaultUsers = [
     empresasAsignadas: [],
     supervisedUsers: ["usr_senior"],
     supervisorId: "",
-    ...buildSeedCredentials("usr_admin"),
+    ...(await buildSeedCredentials("usr_admin")),
     ultimoLoginAt: null,
     createdAt: "2026-05-01T09:00:00.000Z",
     updatedAt: "2026-05-01T09:00:00.000Z"
@@ -52,7 +57,7 @@ export const defaultUsers = [
     empresasAsignadas: ["emp_acme"],
     supervisedUsers: ["usr_junior_paula", "usr_junior_sara", "usr_apprentice_camila"],
     supervisorId: "usr_admin",
-    ...buildSeedCredentials("usr_senior"),
+    ...(await buildSeedCredentials("usr_senior")),
     ultimoLoginAt: null,
     createdAt: "2026-05-01T09:05:00.000Z",
     updatedAt: "2026-05-01T09:05:00.000Z"
@@ -70,7 +75,7 @@ export const defaultUsers = [
     empresasAsignadas: ["emp_acme"],
     supervisedUsers: [],
     supervisorId: "usr_senior",
-    ...buildSeedCredentials("usr_junior_paula"),
+    ...(await buildSeedCredentials("usr_junior_paula")),
     ultimoLoginAt: null,
     createdAt: "2026-05-01T09:10:00.000Z",
     updatedAt: "2026-05-01T09:10:00.000Z"
@@ -88,7 +93,7 @@ export const defaultUsers = [
     empresasAsignadas: ["emp_acme"],
     supervisedUsers: [],
     supervisorId: "usr_senior",
-    ...buildSeedCredentials("usr_junior_sara"),
+    ...(await buildSeedCredentials("usr_junior_sara")),
     ultimoLoginAt: null,
     createdAt: "2026-05-01T09:15:00.000Z",
     updatedAt: "2026-05-01T09:15:00.000Z"
@@ -106,12 +111,15 @@ export const defaultUsers = [
     empresasAsignadas: [],
     supervisedUsers: [],
     supervisorId: "usr_senior",
-    ...buildSeedCredentials("usr_apprentice_camila"),
+    ...(await buildSeedCredentials("usr_apprentice_camila")),
     ultimoLoginAt: null,
     createdAt: "2026-05-01T09:20:00.000Z",
     updatedAt: "2026-05-01T09:20:00.000Z"
   }
 ];
+
+// Alias temporal para los scripts de desarrollo existentes. En produccion siempre es un arreglo vacio.
+export const defaultUsers = defaultDemoUsers;
 
 export const defaultSessions = [];
 
