@@ -167,8 +167,9 @@ async function main() {
   if (issues.length > 0) {
     fail(`El origen no paso el dry-run: ${issues.join(" ")}`);
   }
-  if (data.fiscalCalendars.length !== 536) {
-    fail(`Se esperaban 536 calendarios y se encontraron ${data.fiscalCalendars.length}.`);
+  const expectedCalendarCount = source.fiscalCalendars.length;
+  if (data.fiscalCalendars.length !== expectedCalendarCount) {
+    fail(`El normalizador conservo ${data.fiscalCalendars.length} de ${expectedCalendarCount} calendarios.`);
   }
 
   const client = new Client({ connectionString });
@@ -199,12 +200,12 @@ async function main() {
     }
 
     const count = Number((await client.query("SELECT COUNT(*) AS count FROM fiscal_calendars")).rows[0].count);
-    if (count !== 536) {
-      fail(`PostgreSQL conservo ${count} calendarios; se esperaban 536.`);
+    if (count !== expectedCalendarCount) {
+      fail(`PostgreSQL conservo ${count} calendarios; se esperaban ${expectedCalendarCount}.`);
     }
     const identityCount = await countCalendarIdentities(client);
-    if (identityCount !== 536) {
-      fail(`PostgreSQL encontro ${identityCount} identidades; se esperaban 536.`);
+    if (identityCount !== expectedCalendarCount) {
+      fail(`PostgreSQL encontro ${identityCount} identidades; se esperaban ${expectedCalendarCount}.`);
     }
 
     const duplicate = {
@@ -246,7 +247,7 @@ async function main() {
     const countAfterRollback = Number(
       (await client.query("SELECT COUNT(*) AS count FROM fiscal_calendars")).rows[0].count
     );
-    if (countAfterRollback !== 536) {
+    if (countAfterRollback !== expectedCalendarCount) {
       fail(`El rollback altero los calendarios: quedaron ${countAfterRollback}.`);
     }
 
@@ -255,16 +256,16 @@ async function main() {
       (await client.query("SELECT COUNT(*) AS count FROM fiscal_calendars")).rows[0].count
     );
     const reappliedIdentityCount = await countCalendarIdentities(client);
-    if (reappliedCount !== 536 || reappliedIdentityCount !== 536) {
+    if (reappliedCount !== expectedCalendarCount || reappliedIdentityCount !== expectedCalendarCount) {
       fail(
-        `La reaplicacion dejo ${reappliedCount} calendarios y ${reappliedIdentityCount} identidades; se esperaban 536.`
+        `La reaplicacion dejo ${reappliedCount} calendarios y ${reappliedIdentityCount} identidades; se esperaban ${expectedCalendarCount}.`
       );
     }
     console.log("[ok] Migraciones 001 y 002 aplicadas en esquema aislado.");
-    console.log("[ok] PostgreSQL conservo 536 calendarios y 536 identidades unicas.");
+    console.log(`[ok] PostgreSQL conservo ${expectedCalendarCount} calendarios e identidades unicas.`);
     console.log("[ok] PostgreSQL rechazo un duplicado real con fecha distinta.");
     console.log("[ok] PostgreSQL rechazo una FK inexistente y un estado que viola CHECK.");
-    console.log("[ok] Rollback 002 preservo los 536 calendarios y permitio reaplicar la migracion.");
+    console.log(`[ok] Rollback 002 preservo los ${expectedCalendarCount} calendarios y permitio reaplicar la migracion.`);
   } finally {
     await client.query("SET search_path TO public").catch(() => {});
     await client.query(`DROP SCHEMA IF EXISTS ${quoteIdentifier(schemaName)} CASCADE`).catch(() => {});

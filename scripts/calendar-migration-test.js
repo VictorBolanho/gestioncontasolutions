@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { COLLECTION_ORDER } from "../apps/api/src/db/entity-definitions.js";
+import { COLLECTION_DEFINITIONS, COLLECTION_ORDER } from "../apps/api/src/db/entity-definitions.js";
 import {
   buildFiscalCalendarIdentityKey,
   validateMigrationData
@@ -151,17 +151,41 @@ test("el dry-run detecta claves foraneas, CHECK y campos obligatorios", () => {
   assert.ok(issues.some((issue) => issue.includes("fechaVencimiento invalida")));
 });
 
-test("los 536 calendarios operativos tienen identidad unica corregida", async () => {
+test("el mapper PostgreSQL no convierte confirmadoPorUsuario=false en una FK textual", () => {
+  const mapper = COLLECTION_DEFINITIONS.companyObligations.columns.confirmed_by_user;
+  assert.equal(mapper({ confirmadoPorUsuario: true }), null);
+  assert.equal(mapper({ confirmadoPorUsuario: false }), null);
+  assert.equal(mapper({ confirmadoPorUsuario: null }), null);
+  assert.equal(mapper({ confirmadoPorUsuario: "" }), null);
+  assert.equal(mapper({ confirmadoPorUsuario: "   " }), null);
+  assert.equal(mapper({ confirmadoPorUsuario: " SyStEm " }), null);
+  assert.equal(mapper({ confirmadoPorUsuario: "usr_owner" }), "usr_owner");
+});
+
+test("el mapper PostgreSQL conserva actores system en payload pero no como FK de usuario", () => {
+  const mapper = COLLECTION_DEFINITIONS.audits.columns.usuario_id;
+  assert.equal(mapper({ usuarioId: true }), null);
+  assert.equal(mapper({ usuarioId: false }), null);
+  assert.equal(mapper({ usuarioId: "system" }), null);
+  assert.equal(mapper({ usuarioId: "SYSTEM" }), null);
+  assert.equal(mapper({ usuarioId: null }), null);
+  assert.equal(mapper({ usuarioId: "" }), null);
+  assert.equal(mapper({ usuarioId: "   " }), null);
+  assert.equal(mapper({ usuarioId: "usr_owner" }), "usr_owner");
+});
+
+test("todos los calendarios operativos tienen identidad unica corregida", async () => {
   const source = await readOperationalSource();
   const { data, issues } = validateMigrationData(source);
-  assert.equal(data.fiscalCalendars.length, 536);
+  const expectedCount = source.fiscalCalendars.length;
+  assert.equal(data.fiscalCalendars.length, expectedCount);
   assert.deepEqual(issues, []);
   const keys = new Set(
     data.fiscalCalendars.map((calendar) =>
       buildFiscalCalendarIdentityKey(calendar, data.organization.id)
     )
   );
-  assert.equal(keys.size, 536);
+  assert.equal(keys.size, expectedCount);
   assert.ok(data.fiscalCalendars.every((calendar) => calendar.organizacionId === data.organization.id));
 });
 

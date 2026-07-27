@@ -2,6 +2,14 @@ function normalizeText(value) {
   return String(value ?? "").trim();
 }
 
+function normalizeOptionalUserReference(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = normalizeText(value);
+  return normalized && normalized.toLowerCase() !== "system" ? normalized : null;
+}
+
 function toNullableInt(value) {
   const parsed = Number.parseInt(String(value ?? "").trim(), 10);
   return Number.isFinite(parsed) ? parsed : null;
@@ -167,7 +175,8 @@ export const COLLECTION_DEFINITIONS = Object.freeze({
       municipio_aplicacion: (item) => normalizeText(item?.municipioAplicacion) || null,
       departamento_aplicacion: (item) => normalizeText(item?.departamentoAplicacion) || null,
       evento_fiscal_clave: (item) => normalizeText(item?.eventoFiscalClave) || null,
-      confirmed_by_user: (item) => normalizeText(item?.confirmadoPorUsuario) || null,
+      confirmed_by_user: (item) =>
+        normalizeOptionalUserReference(item?.confirmadoPorUsuario),
       created_at: (item) => normalizeText(item?.createdAt) || null,
       updated_at: (item) => normalizeText(item?.updatedAt) || null,
       payload: toJson
@@ -277,7 +286,7 @@ export const COLLECTION_DEFINITIONS = Object.freeze({
     columns: {
       id: (item) => normalizeText(item?.id),
       organizacion_id: (item) => normalizeText(item?.organizacionId) || null,
-      usuario_id: (item) => normalizeText(item?.usuarioId) || null,
+      usuario_id: (item) => normalizeOptionalUserReference(item?.usuarioId),
       modulo: (item) => normalizeText(item?.modulo) || null,
       accion: (item) => normalizeText(item?.accion) || null,
       recurso_tipo: (item) => normalizeText(item?.recursoTipo) || null,

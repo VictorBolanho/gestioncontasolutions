@@ -25,6 +25,7 @@
     "test:calendar-migration": "node --test scripts/calendar-migration-test.js",
     "test:postgres-calendar": "node scripts/postgres-calendar-migration-test.js",
     "test:postgres-reconcile": "node scripts/postgres-full-reconciliation-test.js",
+    "test:database-http:docker": "node scripts/run-isolated-postgres-http-test.js",
     "smoke:test": "node scripts/smoke-test.js",
     "reset:dev-data": "node scripts/reset-dev-data.js --confirm",
     "reset:fiscal-data": "node scripts/reset-fiscal-data.js --confirm"
