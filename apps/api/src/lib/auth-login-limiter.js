@@ -39,13 +39,6 @@ export function getLoginLimitConfigs(env = process.env) {
       baseLockMs: 60 * 1000,
       maxLockMs: 15 * 60 * 1000,
       maxEntries: 2000
-    }),
-    global: buildConfig(env, "AUTH_LOGIN_GLOBAL", {
-      maxFailures: 100,
-      windowMs: 5 * 60 * 1000,
-      baseLockMs: 30 * 1000,
-      maxLockMs: 5 * 60 * 1000,
-      maxEntries: 1
     })
   };
 }
@@ -60,7 +53,19 @@ export class ProgressiveLoginLimiter {
     return this.entries.size;
   }
 
+  cleanup(now = Date.now()) {
+    let removed = 0;
+    for (const [key, entry] of this.entries) {
+      if (entry.blockedUntil <= now && now - entry.windowStartedAt >= this.config.windowMs) {
+        this.entries.delete(key);
+        removed += 1;
+      }
+    }
+    return removed;
+  }
+
   check(key, now = Date.now()) {
+    this.cleanup(now);
     const entry = this.entries.get(key);
     if (!entry) {
       return { allowed: true, retryAfterMs: 0 };
@@ -75,6 +80,7 @@ export class ProgressiveLoginLimiter {
   }
 
   recordFailure(key, now = Date.now()) {
+    this.cleanup(now);
     const previous = this.entries.get(key);
     const expiredWindow = !previous || now - previous.windowStartedAt >= this.config.windowMs;
     const entry = expiredWindow
@@ -108,8 +114,7 @@ export function createLoginLimiters(env = process.env) {
   const configs = getLoginLimitConfigs(env);
   return {
     email: new ProgressiveLoginLimiter(configs.email),
-    remote: new ProgressiveLoginLimiter(configs.remote),
-    global: new ProgressiveLoginLimiter(configs.global)
+    remote: new ProgressiveLoginLimiter(configs.remote)
   };
 }
 

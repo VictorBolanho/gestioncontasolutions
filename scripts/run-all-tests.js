@@ -16,6 +16,7 @@ const commandsBeforeServices = [
   ["node", ["--test", "scripts/calendar-migration-test.js"]],
   ["node", ["--test", "scripts/auth-security-test.js"]],
   ["node", ["--test", "scripts/security-hardening-test.js"]],
+  ["node", ["--test", "scripts/security-network-test.js"]],
   ["node", ["scripts/db-migrate-json.js", "--dry-run"]],
   ["node", ["scripts/test-db.js"]],
   ["node", ["scripts/reset-dev-data.js", "--confirm", "--clean"]]

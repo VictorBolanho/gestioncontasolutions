@@ -13,6 +13,28 @@ Antes de admitir una segunda organización deben agregarse, como mínimo:
 
 Hasta completar ese trabajo, desplegar varias organizaciones en la misma instancia o base de datos está fuera del alcance soportado.
 
+## Perímetro HTTP y despliegue
+
+La API aplica CORS mediante una allowlist exacta y conserva como fuente de red
+la dirección del socket. Sólo interpreta `Forwarded` o `X-Forwarded-For` si el
+salto directo figura en `TRUSTED_PROXY_ADDRESSES`; valida todos los saltos y
+descarta por completo una cadena malformada. La lista admite direcciones IPv4 e
+IPv6 concretas, no rangos CIDR. El reverse proxy debe sanear las cabeceras
+recibidas del exterior y construir una cadena consistente.
+
+API y frontend aplican cabeceras defensivas. La CSP del frontend sólo permite
+recursos propios y orígenes de conexión declarados; no depende de ejecución
+inline. HSTS requiere simultáneamente `NODE_ENV=production` y la confirmación
+operativa `HTTPS_CONFIRMED=true`, porque la aplicación no puede inferir por sí
+sola que todo el dominio público está servido exclusivamente por HTTPS.
+
+La protección de login mantiene cuotas progresivas separadas por identidad y
+dirección de origen. Sus contadores viven en memoria, tienen ventana y capacidad
+máximas y se limpian bajo demanda. Por tanto, esta protección sólo es consistente
+dentro de una instancia. Antes de desplegar múltiples réplicas se necesita un
+backend compartido para los contadores y bloqueos; esta etapa no incorpora Redis
+ni otro servicio adicional.
+
 ## Resumen
 
 GestorConta esta organizado como una solucion modular con separacion explicita entre API, frontend y dominio compartido. La implementacion actual cubre Fase 0, Fase 1, Fase 2 y Fase 3.

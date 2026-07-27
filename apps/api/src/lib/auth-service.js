@@ -792,16 +792,14 @@ export function sanitizeHistoricalAuthenticationAudits() {
 function getLoginLimitKeys(email, remoteAddress) {
   return {
     email: hashSessionToken(`email:${normalizeEmail(email)}`),
-    remote: hashSessionToken(`remote:${normalizeText(remoteAddress) || "unknown"}`),
-    global: "global"
+    remote: hashSessionToken(`remote:${normalizeText(remoteAddress) || "unknown"}`)
   };
 }
 
 function getBlockedLoginState(keys) {
   const states = [
     loginLimiters.email.check(keys.email),
-    loginLimiters.remote.check(keys.remote),
-    loginLimiters.global.check(keys.global)
+    loginLimiters.remote.check(keys.remote)
   ];
   const retryAfterMs = states.reduce((maximum, state) => Math.max(maximum, state.retryAfterMs || 0), 0);
   return { allowed: states.every((state) => state.allowed), retryAfterMs };
@@ -810,7 +808,6 @@ function getBlockedLoginState(keys) {
 function recordLoginFailure(keys) {
   loginLimiters.email.recordFailure(keys.email);
   loginLimiters.remote.recordFailure(keys.remote);
-  loginLimiters.global.recordFailure(keys.global);
 }
 
 export async function login(email, password, { remoteAddress = "unknown" } = {}) {

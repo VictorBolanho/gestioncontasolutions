@@ -3,11 +3,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runtimeEnvironment } from "../api/src/lib/runtime-environment.js";
+import { getDefensiveHeaders } from "../api/src/lib/http-security.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const nodeEnvironment = runtimeEnvironment.nodeEnv;
 const port = Number(process.env.PORT || 3000);
+const defensiveHeaders = getDefensiveHeaders({
+  surface: "frontend",
+  env: process.env,
+  nodeEnvironment
+});
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -26,6 +32,9 @@ function resolveFile(urlPath) {
 }
 
 const server = http.createServer((request, response) => {
+  for (const [name, value] of Object.entries(defensiveHeaders)) {
+    response.setHeader(name, value);
+  }
   const target = resolveFile(request.url.split("?")[0]);
 
   fs.readFile(target, (error, content) => {

@@ -264,6 +264,64 @@ La API valida `Content-Length`, cuenta los bytes realmente recibidos y aplica ti
 
 Los cuerpos excesivos responden `413` y las lecturas agotadas responden `408`.
 
+## Seguridad HTTP, CORS y proxies
+
+La API usa una lista exacta de orígenes CORS. En `development` permite
+`http://127.0.0.1:3000` y `http://localhost:3000`; cualquier origen adicional
+debe declararse, separado por comas:
+
+```powershell
+$env:CORS_ALLOWED_ORIGINS = "https://app.example.com"
+```
+
+En `production`, `CORS_ALLOWED_ORIGINS` es obligatorio y debe contener al menos
+una URL HTTP/HTTPS sin ruta, consulta, fragmento ni credenciales. El valor
+especial `null` no está permitido. Los clientes servidor-a-servidor sin
+cabecera `Origin` continúan admitidos.
+
+API y frontend envían CSP, protección contra framing, `nosniff`, política de
+referencia y una `Permissions-Policy` restrictiva. El frontend sólo permite
+scripts y estilos propios, sin `unsafe-inline` ni `unsafe-eval`. Si el frontend
+de producción llama a una API de otro origen, declara ese origen en:
+
+```powershell
+$env:FRONTEND_CSP_CONNECT_SOURCES = "https://api.example.com"
+```
+
+HSTS sólo se emite con `NODE_ENV=production` y `HTTPS_CONFIRMED=true`. Activa
+esa confirmación únicamente cuando el dominio completo se entregue siempre por
+HTTPS, incluido el tramo público hasta el proxy:
+
+```powershell
+$env:HTTPS_CONFIRMED = "true"
+$env:HSTS_MAX_AGE_SECONDS = "31536000"
+$env:HSTS_INCLUDE_SUBDOMAINS = "false"
+```
+
+No habilites subdominios hasta confirmar que todos soportan HTTPS. El máximo
+aceptado para `HSTS_MAX_AGE_SECONDS` es 63072000.
+
+Por defecto la dirección del cliente es la conexión directa
+`request.socket.remoteAddress`; las cabeceras `Forwarded` y
+`X-Forwarded-For` se ignoran. Para un reverse proxy de producción, declara
+exclusivamente las direcciones IP de cada proxy confiable, en orden
+independiente y separadas por comas:
+
+```powershell
+$env:TRUSTED_PROXY_ADDRESSES = "10.0.0.10,10.0.0.11"
+```
+
+El proxy debe reemplazar o anexar correctamente la cadena reenviada. GestorConta
+valida la cadena completa desde la conexión más cercana y usa como cliente el
+primer salto no confiable; una entrada malformada hace que se ignore toda la
+cadena. No se admiten rangos CIDR ni confianza automática.
+
+El login conserva límites progresivos independientes por identidad normalizada
+y dirección de origen, además del máximo de operaciones KDF concurrentes. Los
+contadores tienen duración y tamaño acotados y se limpian bajo demanda. Este
+almacenamiento en memoria protege una sola instancia; varias réplicas requerirán
+un backend compartido para aplicar los límites de forma consistente.
+
 ## Limpieza de datos de desarrollo
 
 Reset seguro del ambiente local:

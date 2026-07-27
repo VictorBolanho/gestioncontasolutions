@@ -19,6 +19,14 @@ import {
 } from "./lib/http.js";
 import { getAuthenticationErrorResponse } from "./lib/auth-http.js";
 import { sendApiFailure } from "./lib/api-errors.js";
+import {
+  applyCors,
+  getCorsConfiguration,
+  getDefensiveHeaders,
+  getTrustedProxyConfiguration,
+  resolveClientAddress
+} from "./lib/http-security.js";
+import { runtimeEnvironment } from "./lib/runtime-environment.js";
 import { parseMultipartFormData } from "./lib/multipart.js";
 import { generateClientSummaryReport } from "./lib/client-report-service.js";
 import {
@@ -109,6 +117,13 @@ import {
 } from "./lib/auth-service.js";
 
 const port = Number(process.env.PORT || 4000);
+const corsConfiguration = getCorsConfiguration(process.env, runtimeEnvironment.nodeEnv);
+const apiDefensiveHeaders = getDefensiveHeaders({
+  surface: "api",
+  env: process.env,
+  nodeEnvironment: runtimeEnvironment.nodeEnv
+});
+const trustedProxyConfiguration = getTrustedProxyConfiguration(process.env);
 validateHttpBodyConfiguration();
 ensureStorage();
 hardenStoredSessions();
@@ -293,6 +308,14 @@ function buildVisibleAuditEntries(currentUser) {
 }
 
 const server = http.createServer((request, response) => {
+  for (const [name, value] of Object.entries(apiDefensiveHeaders)) {
+    response.setHeader(name, value);
+  }
+  const cors = applyCors(request, response, corsConfiguration);
+  if (!cors.allowed) {
+    sendJson(response, 403, { error: "Origen no autorizado." });
+    return;
+  }
   const url = new URL(request.url, `http://${request.headers.host}`);
   const authToken = getBearerToken(request);
   const currentUser = getSessionUser(authToken);
@@ -331,7 +354,7 @@ const server = http.createServer((request, response) => {
       .then(async () => {
         const payload = await readJsonBody(request, { kind: "login" });
         const result = await login(payload.email, payload.password, {
-          remoteAddress: request.socket.remoteAddress || "unknown"
+          remoteAddress: resolveClientAddress(request, trustedProxyConfiguration)
         });
         sendJson(response, 200, result);
       })
@@ -1577,9 +1600,7 @@ const server = http.createServer((request, response) => {
       const report = generateClientSummaryReport(companyId);
       response.writeHead(200, {
         "Content-Type": "text/html; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${report.fileName}"`,
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+        "Content-Disposition": `attachment; filename="${report.fileName}"`
       });
       response.end(report.html);
     } catch (error) {
@@ -1630,9 +1651,7 @@ const server = http.createServer((request, response) => {
       const report = exportDashboardReportCsv(currentUser, reportType, parseDashboardFilters(url.searchParams));
       response.writeHead(200, {
         "Content-Type": report.contentType,
-        "Content-Disposition": `attachment; filename="${report.fileName}"`,
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+        "Content-Disposition": `attachment; filename="${report.fileName}"`
       });
       response.end(report.body);
     } catch (error) {
