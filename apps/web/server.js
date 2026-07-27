@@ -2,9 +2,11 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { runtimeEnvironment } from "../api/src/lib/runtime-environment.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const nodeEnvironment = runtimeEnvironment.nodeEnv;
 const port = Number(process.env.PORT || 3000);
 
 const mimeTypes = {
@@ -55,5 +57,5 @@ server.on("error", (error) => {
 });
 
 server.listen(port, () => {
-  console.log(`GestorConta Web disponible en http://localhost:${port}`);
+  console.log(`GestorConta Web disponible en http://localhost:${port} (${nodeEnvironment})`);
 });

@@ -9,8 +9,16 @@ import {
   listCiiuActivities,
   searchCiiuActivities
 } from "../../../packages/domain/index.js";
-import { readJsonBody, readRequestBody, sendEmpty, sendJson } from "./lib/http.js";
+import {
+  HttpRequestError,
+  readJsonBody,
+  readRequestBody,
+  sendEmpty,
+  sendJson,
+  validateHttpBodyConfiguration
+} from "./lib/http.js";
 import { getAuthenticationErrorResponse } from "./lib/auth-http.js";
+import { sendApiFailure } from "./lib/api-errors.js";
 import { parseMultipartFormData } from "./lib/multipart.js";
 import { generateClientSummaryReport } from "./lib/client-report-service.js";
 import {
@@ -101,33 +109,24 @@ import {
 } from "./lib/auth-service.js";
 
 const port = Number(process.env.PORT || 4000);
+validateHttpBodyConfiguration();
 ensureStorage();
 hardenStoredSessions();
 sanitizeHistoricalAuthenticationAudits();
 
 function sendActionError(response, error) {
-  const statusCode = Number(error?.statusCode || 500);
-
-  if (statusCode >= 500) {
-    sendJson(response, 500, {
-      error: "No se pudo actualizar la obligacion.",
-      details: error?.message || "Error interno."
-    });
-    return;
-  }
-
-  sendJson(response, statusCode, {
-    error: error?.message || "No se pudo completar la operacion."
-  });
+  sendApiFailure(response, error, "No se pudo actualizar la obligacion.");
 }
 
 function sendApiError(response, error, fallbackMessage = "No se pudo completar la operacion.") {
-  sendJson(response, Number(error?.statusCode || 400), {
-    error: error?.message || fallbackMessage
-  });
+  sendApiFailure(response, error, fallbackMessage, { defaultStatusCode: 400 });
 }
 
 function sendAuthenticationError(response, error) {
+  if (error instanceof HttpRequestError) {
+    sendApiError(response, error);
+    return;
+  }
   const result = getAuthenticationErrorResponse(error);
   for (const [name, value] of Object.entries(result.headers || {})) {
     response.setHeader(name, value);
@@ -330,7 +329,7 @@ const server = http.createServer((request, response) => {
   if (request.method === "POST" && url.pathname === "/api/auth/login") {
     Promise.resolve()
       .then(async () => {
-        const payload = await readJsonBody(request);
+        const payload = await readJsonBody(request, { kind: "login" });
         const result = await login(payload.email, payload.password, {
           remoteAddress: request.socket.remoteAddress || "unknown"
         });
@@ -1237,13 +1236,13 @@ const server = http.createServer((request, response) => {
     }
     Promise.resolve()
       .then(async () => {
-        const body = await readRequestBody(request);
+        const body = await readRequestBody(request, { kind: "multipart" });
         const contentType = request.headers["content-type"] || "";
         const parts = parseMultipartFormData(body, contentType);
         const filePart = parts.find((part) => part.name === "rutPdf" && part.filename);
 
         if (!filePart) {
-          throw new Error("Debes adjuntar el archivo PDF del RUT.");
+          throw new HttpRequestError("Debes adjuntar el archivo PDF del RUT.", 400);
         }
 
         const result = await saveRutUpload({
@@ -1255,9 +1254,7 @@ const server = http.createServer((request, response) => {
 
         sendJson(response, 201, result);
       })
-      .catch((error) => {
-        sendJson(response, 400, { error: error.message });
-      });
+      .catch((error) => sendApiError(response, error, "No fue posible cargar el PDF del RUT."));
     return;
   }
 

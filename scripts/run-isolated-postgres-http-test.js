@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import { Client } from "pg";
+import { createPasswordCredential } from "../apps/api/src/lib/auth-crypto.js";
 
 const image = "postgres:18-alpine";
 const suffix = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
@@ -102,6 +103,52 @@ async function verifyImportedCounts(databaseUrl, expected) {
   }
 }
 
+async function waitForDatabase(databaseUrl) {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const client = new Client({ connectionString: databaseUrl });
+    try {
+      await client.connect();
+      await client.query("SELECT 1");
+      await client.end();
+      console.log("[ok] Conexion PostgreSQL temporal verificada desde el host.");
+      return;
+    } catch {
+      await client.end().catch(() => {});
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+  throw new Error("PostgreSQL temporal no acepto conexiones desde el host.");
+}
+
+async function provisionTemporaryUserCredentials(databaseUrl, password) {
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    const { rows } = await client.query("SELECT id FROM users ORDER BY id");
+    for (const { id } of rows) {
+      const credential = await createPasswordCredential(password);
+      await client.query(
+        `
+          UPDATE users
+          SET password_salt = $2,
+              password_hash = $3,
+              payload = jsonb_set(
+                jsonb_set(payload, '{passwordSalt}', to_jsonb($2::text), true),
+                '{passwordHash}',
+                to_jsonb($3::text),
+                true
+              )
+          WHERE id = $1
+        `,
+        [id, credential.passwordSalt, credential.passwordHash]
+      );
+    }
+    console.log(`[ok] Credenciales efimeras generadas para ${rows.length} usuarios importados.`);
+  } finally {
+    await client.end();
+  }
+}
+
 async function cleanup() {
   if (containerCreated) {
     await run("docker", ["rm", "-f", containerName], { allowFailure: true });
@@ -162,9 +209,12 @@ async function main() {
     const databaseUrl =
       `postgresql://${encodeURIComponent(databaseUser)}:${encodeURIComponent(databasePassword)}` +
       `@127.0.0.1:${match[1]}/${databaseName}`;
+    const temporaryDemoPassword = crypto.randomBytes(32).toString("hex");
     const testEnv = {
       ...process.env,
       NODE_ENV: "test",
+      ALLOW_DEMO_SEEDS: "false",
+      DEV_SEED_PASSWORD: temporaryDemoPassword,
       STORAGE_DRIVER: "database",
       DATABASE_URL: databaseUrl,
       TEST_DATABASE_URL: databaseUrl,
@@ -172,6 +222,7 @@ async function main() {
       EXPECTED_IMPORTED_CALENDAR_COUNT: String(expected.calendars)
     };
 
+    await waitForDatabase(databaseUrl);
     await run(process.execPath, ["scripts/db-migrate.js"], { env: testEnv });
     await run(process.execPath, ["scripts/db-migrate-json.js"], { env: testEnv });
     await verifyImportedCounts(databaseUrl, expected);
@@ -181,6 +232,7 @@ async function main() {
     await run(process.execPath, ["scripts/postgres-full-reconciliation-test.js"], {
       env: { ...testEnv, GESTORCONTA_ALLOW_TEST_DATABASE: "full-reconciliation" }
     });
+    await provisionTemporaryUserCredentials(databaseUrl, temporaryDemoPassword);
     await run(process.execPath, ["scripts/run-database-http-integration.js"], { env: testEnv });
   } catch (error) {
     primaryError = error;

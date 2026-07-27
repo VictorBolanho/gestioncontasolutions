@@ -1,5 +1,18 @@
 # Arquitectura actual
 
+## Alcance organizacional actual
+
+GestorConta admite actualmente una sola organización operativa. Los permisos separan usuarios por rol, supervisión y empresas asignadas, pero el esquema todavía no implementa aislamiento multitenant entre organizaciones.
+
+Antes de admitir una segunda organización deben agregarse, como mínimo:
+
+- `organizacion_id` obligatorio en usuarios, empresas, sesiones y entidades operativas;
+- claves foráneas, índices y restricciones de unicidad con alcance organizacional;
+- filtrado obligatorio por organización en repositorios y servicios;
+- pruebas negativas de acceso cruzado entre organizaciones.
+
+Hasta completar ese trabajo, desplegar varias organizaciones en la misma instancia o base de datos está fuera del alcance soportado.
+
 ## Resumen
 
 GestorConta esta organizado como una solucion modular con separacion explicita entre API, frontend y dominio compartido. La implementacion actual cubre Fase 0, Fase 1, Fase 2 y Fase 3.

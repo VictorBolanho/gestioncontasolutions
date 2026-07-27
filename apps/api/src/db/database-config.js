@@ -1,5 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { runtimeEnvironment } from "../lib/runtime-environment.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +29,7 @@ export function getDatabaseConfig() {
 
   return {
     driver: getStorageDriver(),
+    environment: runtimeEnvironment.nodeEnv,
     autoInit: normalizeBool(process.env.DB_AUTO_INIT, false),
     migrationsTable: String(process.env.DB_MIGRATIONS_TABLE || "schema_migrations").trim() || "schema_migrations",
     connectionString: String(process.env.DATABASE_URL || "").trim(),

@@ -1,22 +1,23 @@
 import { COMPANY_STATUS, DEFAULT_THEME } from "../../../../packages/domain/index.js";
 import { defaultInferredTaxRules } from "./inferred-tax-matrix.js";
 import { createPasswordCredential, hashSessionToken } from "../lib/auth-crypto.js";
+import { runtimeEnvironment } from "../lib/runtime-environment.js";
 
-const NODE_ENV = String(process.env.NODE_ENV || "development").trim().toLowerCase();
-const IS_PRODUCTION = NODE_ENV === "production";
-const DEV_SEED_PASSWORD = IS_PRODUCTION
-  ? ""
-  : String(process.env.DEV_SEED_PASSWORD || "dev-only-local-not-for-production").trim();
+const { nodeEnv: NODE_ENV } = runtimeEnvironment;
+const DEV_SEED_PASSWORD = runtimeEnvironment.demoSeedPassword;
 
 async function buildSeedCredentials(seedKey) {
-  if (IS_PRODUCTION) {
-    throw new Error("Los usuarios demo estan prohibidos cuando NODE_ENV=production.");
+  if (!runtimeEnvironment.demoSeedsEnabled) {
+    throw new Error("Las semillas demo no estan habilitadas.");
   }
   const salt = hashSessionToken(`gestorconta-seed:${seedKey}`).slice(0, 32);
   return createPasswordCredential(DEV_SEED_PASSWORD, { salt });
 }
 
-export const demoSeedMode = Object.freeze({ enabled: !IS_PRODUCTION, environment: NODE_ENV });
+export const demoSeedMode = Object.freeze({
+  enabled: runtimeEnvironment.demoSeedsEnabled,
+  environment: NODE_ENV
+});
 
 export const defaultOrganization = {
   id: "org_contasolutions",
@@ -25,7 +26,7 @@ export const defaultOrganization = {
   temaVisual: DEFAULT_THEME
 };
 
-export const defaultDemoUsers = IS_PRODUCTION ? [] : [
+export const defaultDemoUsers = runtimeEnvironment.demoSeedsEnabled ? [
   {
     id: "usr_admin",
     nombre: "Demo",
@@ -116,7 +117,7 @@ export const defaultDemoUsers = IS_PRODUCTION ? [] : [
     createdAt: "2026-05-01T09:20:00.000Z",
     updatedAt: "2026-05-01T09:20:00.000Z"
   }
-];
+] : [];
 
 // Alias temporal para los scripts de desarrollo existentes. En produccion siempre es un arreglo vacio.
 export const defaultUsers = defaultDemoUsers;
@@ -125,7 +126,7 @@ export const defaultSessions = [];
 
 export const defaultInternalAlerts = [];
 
-export const defaultCompanies = [
+export const defaultCompanies = runtimeEnvironment.demoSeedsEnabled ? [
   {
     id: "emp_acme",
     nit: "900123456",
@@ -154,9 +155,9 @@ export const defaultCompanies = [
     updatedAt: "2026-04-03T10:00:00.000Z",
     documentoRutId: "doc_seed_acme"
   }
-];
+] : [];
 
-export const defaultDocuments = [
+export const defaultDocuments = runtimeEnvironment.demoSeedsEnabled ? [
   {
     id: "doc_seed_acme",
     empresaId: "emp_acme",
@@ -168,9 +169,9 @@ export const defaultDocuments = [
     tamanio: 0,
     createdAt: "2026-04-03T10:00:00.000Z"
   }
-];
+] : [];
 
-export const defaultExtractions = [
+export const defaultExtractions = runtimeEnvironment.demoSeedsEnabled ? [
   {
     id: "ext_seed_acme",
     estadoExtraccion: "exitosa",
@@ -192,7 +193,7 @@ export const defaultExtractions = [
     empresaId: "emp_acme",
     documentoId: "doc_seed_acme"
   }
-];
+] : [];
 
 export const defaultAudits = [];
 

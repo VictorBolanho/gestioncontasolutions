@@ -1,3 +1,5 @@
+import { HttpRequestError } from "./http.js";
+
 function parseHeaders(rawHeaders) {
   return rawHeaders.split("\r\n").reduce((acc, line) => {
     const index = line.indexOf(":");
@@ -30,7 +32,7 @@ function parseDisposition(value = "") {
 export function parseMultipartFormData(buffer, contentType) {
   const boundaryMatch = contentType.match(/boundary=(.+)$/i);
   if (!boundaryMatch) {
-    throw new Error("No se encontro boundary en multipart/form-data.");
+    throw new HttpRequestError("No se encontro boundary en multipart/form-data.", 400);
   }
 
   const boundary = `--${boundaryMatch[1]}`;
@@ -56,4 +58,3 @@ export function parseMultipartFormData(buffer, contentType) {
       };
     });
 }
-

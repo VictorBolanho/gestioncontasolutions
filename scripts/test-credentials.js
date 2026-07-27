@@ -1,4 +1,8 @@
-const GENERIC_TEST_PASSWORD = process.env.DEV_SEED_PASSWORD || "dev-only-local-not-for-production";
+const GENERIC_TEST_PASSWORD = String(process.env.DEV_SEED_PASSWORD || "");
+
+if (!GENERIC_TEST_PASSWORD) {
+  throw new Error("DEV_SEED_PASSWORD es obligatorio para usar las credenciales demo de prueba.");
+}
 
 function readEnv(name, fallback) {
   const value = String(process.env[name] || "").trim();

@@ -222,10 +222,22 @@ npm run db:migrate-json
 npm run test:db
 ```
 
-## Credenciales de desarrollo y prueba
+## Entorno y credenciales de desarrollo
 
-- Las semillas locales usan `DEV_SEED_PASSWORD` para generar `passwordSalt` y `passwordHash` en tiempo de carga.
-- Si `DEV_SEED_PASSWORD` no existe, el proyecto usa el valor local `dev-only-local-not-for-production`.
+`NODE_ENV` es obligatorio y sólo acepta `development`, `test` o `production`. La aplicación no asume un entorno cuando la variable está ausente.
+
+Las semillas demo están desactivadas por defecto. Para habilitarlas localmente se requieren ambas variables:
+
+```powershell
+$env:NODE_ENV = "development"
+$env:ALLOW_DEMO_SEEDS = "true"
+$env:DEV_SEED_PASSWORD = "<valor local no versionado>"
+npm run dev:api
+```
+
+- `DEV_SEED_PASSWORD` no tiene valor predeterminado.
+- `ALLOW_DEMO_SEEDS=true` está prohibido con `NODE_ENV=production`.
+- En producción no se generan usuarios demo y la API exige un administrador activo creado de forma segura.
 - Los scripts de prueba aceptan estas variables opcionales:
   - `TEST_ADMIN_EMAIL`
   - `TEST_ADMIN_PASSWORD`
@@ -237,8 +249,20 @@ npm run test:db
   - `TEST_JUNIOR_BETA_PASSWORD`
   - `TEST_APPRENTICE_EMAIL`
   - `TEST_APPRENTICE_PASSWORD`
-- Si esas variables no existen, los scripts usan cuentas `@example.test` y la misma clave local de desarrollo.
+- Las cuentas demo de prueba requieren `DEV_SEED_PASSWORD`; no existe una clave predeterminada en el código.
 - No publiques ni reutilices estos valores fuera de ambientes locales o de prueba.
+
+## Límites de lectura HTTP
+
+La API valida `Content-Length`, cuenta los bytes realmente recibidos y aplica timeout también a transferencias fragmentadas:
+
+- `HTTP_BODY_MAX_BYTES`: techo global.
+- `HTTP_JSON_MAX_BYTES`: cuerpos JSON generales.
+- `HTTP_LOGIN_MAX_BYTES`: login.
+- `HTTP_MULTIPART_MAX_BYTES`: cargas PDF RUT.
+- `HTTP_BODY_TIMEOUT_MS`: tiempo máximo para completar la lectura.
+
+Los cuerpos excesivos responden `413` y las lecturas agotadas responden `408`.
 
 ## Limpieza de datos de desarrollo
 

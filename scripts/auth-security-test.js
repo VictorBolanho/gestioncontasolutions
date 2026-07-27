@@ -15,6 +15,8 @@ import { getAuthenticationErrorResponse } from "../apps/api/src/lib/auth-http.js
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "gestorconta-auth-security-"));
 const tempDataDir = path.join(tempRoot, "data");
 fs.mkdirSync(tempDataDir, { recursive: true });
+process.env.NODE_ENV = "test";
+process.env.ALLOW_DEMO_SEEDS = "false";
 process.env.STORAGE_DRIVER = "json";
 process.env.GESTORCONTA_TEST_ROOT = tempRoot;
 process.env.GESTORCONTA_DATA_DIR = tempDataDir;

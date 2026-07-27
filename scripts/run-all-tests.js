@@ -10,10 +10,12 @@ const __filename = fileURLToPath(import.meta.url);
 const projectRoot = path.resolve(path.dirname(__filename), "..");
 const operationalDataDir = path.join(projectRoot, "apps", "api", "data");
 const expectedJsonFileCount = 15;
+const isolatedDemoSeedPassword = crypto.randomBytes(32).toString("hex");
 
 const commandsBeforeServices = [
   ["node", ["--test", "scripts/calendar-migration-test.js"]],
   ["node", ["--test", "scripts/auth-security-test.js"]],
+  ["node", ["--test", "scripts/security-hardening-test.js"]],
   ["node", ["scripts/db-migrate-json.js", "--dry-run"]],
   ["node", ["scripts/test-db.js"]],
   ["node", ["scripts/reset-dev-data.js", "--confirm", "--clean"]]
@@ -187,6 +189,8 @@ function buildTestEnvironment(testRoot, dataDir, apiPort, webPort) {
   const env = {
     ...process.env,
     NODE_ENV: "test",
+    ALLOW_DEMO_SEEDS: "true",
+    DEV_SEED_PASSWORD: isolatedDemoSeedPassword,
     STORAGE_DRIVER: "json",
     GESTORCONTA_TEST_ROOT: testRoot,
     GESTORCONTA_DATA_DIR: dataDir,
