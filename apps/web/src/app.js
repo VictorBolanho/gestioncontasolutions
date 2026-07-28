@@ -156,10 +156,10 @@ const ROLE_DESCRIPTIONS = {
   solo_lectura: "Visualiza informacion sin modificar registros."
 };
 
-const AUTH_STORAGE_KEY = "gestorconta_auth_token";
+const LEGACY_AUTH_STORAGE_KEYS = ["gestorconta_auth_token", "gestorconta_session_token"];
 
 const state = {
-  authToken: window.localStorage.getItem(AUTH_STORAGE_KEY) || "",
+  csrfToken: "",
   currentUser: null,
   authMessage: null,
   bootstrap: null,
@@ -526,12 +526,10 @@ function setValue(object, path, value) {
   current[keys.at(-1)] = value;
 }
 
-function persistAuthToken(token) {
-  state.authToken = token || "";
-  if (state.authToken) {
-    window.localStorage.setItem(AUTH_STORAGE_KEY, state.authToken);
-  } else {
-    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+function clearLegacyAuthenticationStorage() {
+  for (const key of LEGACY_AUTH_STORAGE_KEYS) {
+    window.localStorage.removeItem(key);
+    window.sessionStorage.removeItem(key);
   }
 }
 
@@ -672,12 +670,14 @@ function findRutMatchedCompany(values = reviewFormValues()) {
 async function fetchJson(path, options) {
   try {
     const headers = new Headers(options?.headers || {});
-    if (state.authToken) {
-      headers.set("Authorization", `Bearer ${state.authToken}`);
+    const method = String(options?.method || "GET").toUpperCase();
+    if (!["GET", "HEAD", "OPTIONS"].includes(method) && state.csrfToken) {
+      headers.set("X-CSRF-Token", state.csrfToken);
     }
 
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
+      credentials: "include",
       headers
     });
     const contentType = response.headers.get("content-type") || "";
@@ -685,10 +685,12 @@ async function fetchJson(path, options) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        persistAuthToken("");
+        state.csrfToken = "";
         state.currentUser = null;
       }
-      throw new Error(payload?.error || "No fue posible completar la operacion.");
+      const error = new Error(payload?.error || "No fue posible completar la operacion.");
+      error.statusCode = response.status;
+      throw error;
     }
 
     return payload;
@@ -702,14 +704,9 @@ async function fetchJson(path, options) {
 }
 
 async function downloadAuthenticatedFile(path, suggestedFileName = "reporte.html") {
-  const headers = new Headers();
-  if (state.authToken) {
-    headers.set("Authorization", `Bearer ${state.authToken}`);
-  }
-
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "GET",
-    headers
+    credentials: "include"
   });
 
   const contentType = response.headers.get("content-type") || "";
@@ -7286,7 +7283,8 @@ function bindEvents() {
       const response = await fetchJson("/api/auth/login", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "X-Auth-Mode": "cookie"
         },
         body: JSON.stringify({
           email: formData.get("email"),
@@ -7294,7 +7292,7 @@ function bindEvents() {
         })
       });
 
-      persistAuthToken(response.token);
+      state.csrfToken = response.csrfToken;
       state.currentUser = response.user;
       state.accessDeniedView = "";
       state.authMessage = "Sesion iniciada correctamente.";
@@ -7316,7 +7314,7 @@ function bindEvents() {
       // Si la sesion ya expiro, igual limpiamos estado local.
     }
 
-    persistAuthToken("");
+    state.csrfToken = "";
     state.currentUser = null;
     state.bootstrap = null;
     state.selectedCompany = null;
@@ -8902,18 +8900,18 @@ function bindEvents() {
 async function start() {
   const app = document.querySelector("#app");
   app.innerHTML = `<section class="empty-state" style="padding: 32px;">Cargando GestorConta...</section>`;
+  clearLegacyAuthenticationStorage();
 
   try {
-    if (!state.authToken) {
-      render();
-      return;
-    }
-
+    const session = await fetchJson("/api/auth/session");
+    state.currentUser = session.user;
+    state.csrfToken = session.csrfToken;
     await loadAuthenticatedApp();
   } catch (error) {
-    persistAuthToken("");
+    state.csrfToken = "";
     state.currentUser = null;
-    state.authMessage = `Tu sesion no pudo restaurarse. ${error.message}`;
+    state.authMessage =
+      error.statusCode === 401 ? null : `Tu sesion no pudo restaurarse. ${error.message}`;
     render();
   }
 }

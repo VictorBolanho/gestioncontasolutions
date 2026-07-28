@@ -52,7 +52,7 @@ test("CORS autoriza solo origenes concretos y conserva Vary", () => {
   assert.equal(result.allowed, true);
   assert.equal(response.getHeader("Access-Control-Allow-Origin"), "https://app.example.test");
   assert.equal(response.getHeader("Vary"), "Accept-Encoding, Origin");
-  assert.equal(response.getHeader("Access-Control-Allow-Credentials"), undefined);
+  assert.equal(response.getHeader("Access-Control-Allow-Credentials"), "true");
 });
 
 test("CORS rechaza origenes no autorizados y null", () => {
@@ -83,7 +83,10 @@ test("CORS admite clientes sin Origin y prepara OPTIONS valido", () => {
     true
   );
   assert.equal(preflight.getHeader("Access-Control-Allow-Methods"), "GET,POST,PATCH,DELETE,OPTIONS");
-  assert.equal(preflight.getHeader("Access-Control-Allow-Headers"), "Content-Type, Authorization");
+  assert.equal(
+    preflight.getHeader("Access-Control-Allow-Headers"),
+    "Content-Type, Authorization, X-Auth-Mode, X-CSRF-Token"
+  );
 });
 
 test("CORS valida configuracion de production y formato de origen", () => {

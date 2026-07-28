@@ -35,6 +35,31 @@ dentro de una instancia. Antes de desplegar múltiples réplicas se necesita un
 backend compartido para los contadores y bloqueos; esta etapa no incorpora Redis
 ni otro servicio adicional.
 
+## Sesiones de navegador
+
+El navegador se autentica mediante una cookie de sesión `HttpOnly`; el token de
+sesión no se entrega al JavaScript ni se conserva en `localStorage`,
+`sessionStorage`, IndexedDB o URL. En producción se usa el prefijo `__Host-`,
+cookie `Secure`, `Path=/`, ausencia de `Domain` y `SameSite` explícito. La
+duración de la cookie se deriva del vencimiento persistido de la sesión.
+
+El CSRF se implementa con un token HMAC ligado al token de sesión. El HMAC no se
+persiste y el frontend sólo lo conserva en memoria; puede regenerarse mediante
+la consulta de sesión tras una recarga. Toda operación no segura autenticada
+por cookie exige tanto un origen permitido como el encabezado CSRF correcto.
+Las lecturas seguras no modifican estado.
+
+Bearer se conserva como modo programático separado para pruebas y automatización.
+No depende de cookies ni de CSRF y los clientes no envían `Origin`. La API
+rechaza una solicitud que presente cookie y Bearer simultáneamente para evitar
+precedencias ambiguas.
+
+La aplicación no confía en `X-Forwarded-Proto` para decidir si una cookie es
+segura. Producción requiere la declaración explícita `HTTPS_CONFIRMED=true` y
+un `AUTH_CSRF_SECRET` no versionado. El proxy que termina TLS debe ser operado
+como parte del perímetro confiable y sus direcciones deben estar limitadas por
+`TRUSTED_PROXY_ADDRESSES`.
+
 ## Resumen
 
 GestorConta esta organizado como una solucion modular con separacion explicita entre API, frontend y dominio compartido. La implementacion actual cubre Fase 0, Fase 1, Fase 2 y Fase 3.

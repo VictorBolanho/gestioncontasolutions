@@ -26,6 +26,15 @@ import {
   getTrustedProxyConfiguration,
   resolveClientAddress
 } from "./lib/http-security.js";
+import {
+  buildExpiredSessionCookie,
+  buildSessionCookie,
+  createCsrfToken,
+  getBrowserSessionConfiguration,
+  isAllowedBrowserOrigin,
+  resolveRequestAuthentication,
+  validateCookieRequestSecurity
+} from "./lib/browser-session-security.js";
 import { runtimeEnvironment } from "./lib/runtime-environment.js";
 import { parseMultipartFormData } from "./lib/multipart.js";
 import { generateClientSummaryReport } from "./lib/client-report-service.js";
@@ -124,6 +133,10 @@ const apiDefensiveHeaders = getDefensiveHeaders({
   nodeEnvironment: runtimeEnvironment.nodeEnv
 });
 const trustedProxyConfiguration = getTrustedProxyConfiguration(process.env);
+const browserSessionConfiguration = getBrowserSessionConfiguration(
+  process.env,
+  runtimeEnvironment.nodeEnv
+);
 validateHttpBodyConfiguration();
 ensureStorage();
 hardenStoredSessions();
@@ -147,15 +160,6 @@ function sendAuthenticationError(response, error) {
     response.setHeader(name, value);
   }
   sendJson(response, result.statusCode, result.payload);
-}
-
-function getBearerToken(request) {
-  const header = String(request.headers.authorization || "").trim();
-  if (!header.toLowerCase().startsWith("bearer ")) {
-    return "";
-  }
-
-  return header.slice(7).trim();
 }
 
 function requireAuthenticatedUser(response, currentUser) {
@@ -317,12 +321,25 @@ const server = http.createServer((request, response) => {
     return;
   }
   const url = new URL(request.url, `http://${request.headers.host}`);
-  const authToken = getBearerToken(request);
+  const authentication = resolveRequestAuthentication(request, browserSessionConfiguration);
+  const authToken = authentication.token;
   const currentUser = getSessionUser(authToken);
 
   if (request.method === "OPTIONS") {
     sendEmpty(response);
     return;
+  }
+
+  if (
+    url.pathname.startsWith("/api/") &&
+    ["invalid", "conflict"].includes(authentication.mode)
+  ) {
+    sendJson(response, 400, { error: authentication.error });
+    return;
+  }
+
+  if (authentication.mode === "cookie" && !currentUser) {
+    response.setHeader("Set-Cookie", buildExpiredSessionCookie(browserSessionConfiguration));
   }
 
   if (url.pathname === "/health") {
@@ -350,15 +367,58 @@ const server = http.createServer((request, response) => {
   }
 
   if (request.method === "POST" && url.pathname === "/api/auth/login") {
+    const requestedMode = String(request.headers["x-auth-mode"] || "").trim().toLowerCase();
+    const browserLogin = requestedMode === "cookie";
+    if ((requestedMode && !browserLogin) || (!browserLogin && request.headers.origin)) {
+      sendJson(response, 400, {
+        error: "El login de navegador debe solicitar autenticacion por cookie."
+      });
+      return;
+    }
+    if (
+      authentication.mode !== "none" &&
+      !(browserLogin && authentication.mode === "cookie")
+    ) {
+      sendJson(response, 400, {
+        error: "No combines modos de autenticacion al iniciar una nueva sesion."
+      });
+      return;
+    }
+    if (browserLogin && !isAllowedBrowserOrigin(request, corsConfiguration)) {
+      sendJson(response, 403, { error: "Origen requerido para iniciar sesion." });
+      return;
+    }
     Promise.resolve()
       .then(async () => {
         const payload = await readJsonBody(request, { kind: "login" });
         const result = await login(payload.email, payload.password, {
           remoteAddress: resolveClientAddress(request, trustedProxyConfiguration)
         });
-        sendJson(response, 200, result);
+        if (!browserLogin) {
+          sendJson(response, 200, result);
+          return;
+        }
+        response.setHeader(
+          "Set-Cookie",
+          buildSessionCookie(result.token, result.expiresAt, browserSessionConfiguration)
+        );
+        sendJson(response, 200, {
+          user: result.user,
+          csrfToken: createCsrfToken(result.token, browserSessionConfiguration)
+        });
       })
       .catch((error) => sendAuthenticationError(response, error));
+    return;
+  }
+
+  const cookieSecurity = validateCookieRequestSecurity(
+    request,
+    authentication,
+    corsConfiguration,
+    browserSessionConfiguration
+  );
+  if (!cookieSecurity.allowed) {
+    sendJson(response, cookieSecurity.statusCode, { error: cookieSecurity.error });
     return;
   }
 
@@ -367,7 +427,17 @@ const server = http.createServer((request, response) => {
       return;
     }
 
-    sendJson(response, 200, getSessionSummary(authToken));
+    const summary = getSessionSummary(authToken);
+    sendJson(
+      response,
+      200,
+      authentication.mode === "cookie"
+        ? {
+            ...summary,
+            csrfToken: createCsrfToken(authToken, browserSessionConfiguration)
+          }
+        : summary
+    );
     return;
   }
 
@@ -375,7 +445,9 @@ const server = http.createServer((request, response) => {
     if (authToken) {
       logout(authToken);
     }
-
+    if (authentication.mode === "cookie") {
+      response.setHeader("Set-Cookie", buildExpiredSessionCookie(browserSessionConfiguration));
+    }
     sendJson(response, 200, { ok: true });
     return;
   }

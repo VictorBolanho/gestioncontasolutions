@@ -161,7 +161,11 @@ export function applyCors(request, response, corsConfiguration) {
   }
   response.setHeader("Access-Control-Allow-Origin", normalizedOrigin);
   response.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
-  response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  response.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Auth-Mode, X-CSRF-Token"
+  );
+  response.setHeader("Access-Control-Allow-Credentials", "true");
   response.setHeader("Access-Control-Max-Age", "600");
   return { allowed: true, hasOrigin: true };
 }

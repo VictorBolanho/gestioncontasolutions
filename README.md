@@ -322,6 +322,54 @@ contadores tienen duración y tamaño acotados y se limpian bajo demanda. Este
 almacenamiento en memoria protege una sola instancia; varias réplicas requerirán
 un backend compartido para aplicar los límites de forma consistente.
 
+## Sesión del navegador y CSRF
+
+El frontend no recibe ni persiste el token de sesión. El login web solicita
+explícitamente modo `cookie` y la API responde con una cookie `HttpOnly`,
+`Path=/`, `SameSite` explícito y vencimiento alineado con la sesión del
+servidor. JavaScript sólo conserva en memoria un token CSRF derivado de la
+sesión. Al recargar, `/api/auth/session` restaura usuario y CSRF desde la cookie.
+
+En `development` y `test` la cookie se llama `gestorconta_session` y funciona
+sobre HTTP local sin `Secure`. En `production`:
+
+- la API no arranca sin `HTTPS_CONFIRMED=true`;
+- la cookie se llama `__Host-gestorconta_session`;
+- `Secure`, `HttpOnly`, `Path=/` y ausencia de `Domain` son obligatorios;
+- `AUTH_CSRF_SECRET` debe contener un secreto aleatorio no versionado de al
+  menos 32 caracteres.
+
+Configuración mínima:
+
+```powershell
+$env:NODE_ENV = "production"
+$env:HTTPS_CONFIRMED = "true"
+$env:AUTH_CSRF_SECRET = "<secreto aleatorio no versionado de 32 o más caracteres>"
+$env:AUTH_COOKIE_SAME_SITE = "Lax"
+```
+
+`AUTH_COOKIE_SAME_SITE` acepta `Lax`, `Strict` o `None`. Usa `None` únicamente
+cuando frontend y API sean realmente cross-site; sólo se admite con la cookie
+`Secure` de producción. Si son orígenes distintos pero pertenecen al mismo
+site, normalmente `Lax` es suficiente.
+
+Las operaciones no seguras autenticadas por cookie requieren simultáneamente:
+
+- un `Origin` presente en `CORS_ALLOWED_ORIGINS`;
+- `X-CSRF-Token` válido y ligado a la sesión.
+
+La API conserva Bearer únicamente para pruebas y clientes programáticos sin
+`Origin`. Esos clientes hacen login sin `X-Auth-Mode` y reciben el token en la
+respuesta; el frontend nunca usa ese flujo. Presentar cookie y Bearer a la vez
+se rechaza como ambiguo. Bearer no usa CSRF, pero mantiene autenticación,
+permisos y limitación de login.
+
+Tras un reverse proxy, la seguridad de la cookie no se deduce de
+`X-Forwarded-Proto`: esa cabecera se ignora. `HTTPS_CONFIRMED=true` es una
+declaración operativa explícita de que el acceso público es HTTPS de extremo a
+extremo o termina en un proxy confiable incluido en `TRUSTED_PROXY_ADDRESSES`.
+El proxy debe eliminar cabeceras reenviadas suministradas por el cliente.
+
 ## Limpieza de datos de desarrollo
 
 Reset seguro del ambiente local:

@@ -670,7 +670,7 @@ export async function updateUser(userId, payload, actor) {
   }
 
   syncHierarchy(users, current);
-  if (normalizeText(normalized.password)) {
+  if (normalizeText(normalized.password) || normalized.estado !== "activo") {
     invalidateUserSessions(current.id);
   }
   saveUsers(users);
@@ -886,6 +886,7 @@ export async function login(email, password, { remoteAddress = "unknown" } = {})
 
   return {
     token,
+    expiresAt: new Date(now.getTime() + getSessionTtlMs()).toISOString(),
     user: sanitizeUser(usableUser)
   };
 }
