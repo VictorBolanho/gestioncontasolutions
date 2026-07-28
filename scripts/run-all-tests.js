@@ -18,6 +18,7 @@ const commandsBeforeServices = [
   ["node", ["--test", "scripts/security-hardening-test.js"]],
   ["node", ["--test", "scripts/security-network-test.js"]],
   ["node", ["--test", "scripts/browser-session-security-test.js"]],
+  ["node", ["--test", "scripts/web-deployment-security-test.js"]],
   ["node", ["scripts/db-migrate-json.js", "--dry-run"]],
   ["node", ["scripts/test-db.js"]],
   ["node", ["scripts/reset-dev-data.js", "--confirm", "--clean"]]
@@ -200,6 +201,7 @@ function buildTestEnvironment(testRoot, dataDir, apiPort, webPort) {
     GESTORCONTA_REQUIRE_TEMP_DATA_DIR: "1",
     API_BASE_URL: `http://127.0.0.1:${apiPort}`,
     WEB_BASE_URL: `http://127.0.0.1:${webPort}`,
+    WEB_API_ORIGIN: `http://127.0.0.1:${apiPort}`,
     CORS_ALLOWED_ORIGINS: `http://127.0.0.1:${webPort}`,
     FRONTEND_CSP_CONNECT_SOURCES: `http://127.0.0.1:${apiPort}`
   };

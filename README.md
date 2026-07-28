@@ -252,6 +252,49 @@ npm run dev:api
 - Las cuentas demo de prueba requieren `DEV_SEED_PASSWORD`; no existe una clave predeterminada en el código.
 - No publiques ni reutilices estos valores fuera de ambientes locales o de prueba.
 
+## Primer administrador PostgreSQL
+
+Después de aplicar migraciones y la semilla técnica, el primer owner de
+producción se crea con un comando independiente:
+
+```powershell
+$env:NODE_ENV = "production"
+$env:STORAGE_DRIVER = "database"
+$env:BOOTSTRAP_ADMIN_EMAIL = "<correo entregado por el gestor de secretos>"
+$env:BOOTSTRAP_ADMIN_NAME = "<nombre completo>"
+$env:BOOTSTRAP_ADMIN_PASSWORD = "<contraseña robusta no versionada>"
+npm run db:bootstrap-admin
+```
+
+El comando no acepta credenciales por argumentos. Obtiene un bloqueo
+transaccional de PostgreSQL, exige exactamente una organización activa y el rol
+`owner`, y crea usuario, asignación de rol y auditoría en una sola transacción.
+Si ya existe un owner activo termina correctamente sin crear otro. No imprime
+la contraseña, su hash ni la conexión a PostgreSQL.
+
+La contraseña debe tener entre 14 y 256 caracteres, con mayúscula, minúscula,
+número y símbolo, sin espacios ni el usuario del correo. Elimina estas tres
+variables del proceso y rota el secreto si pudo quedar expuesto después de
+completar el bootstrap.
+
+## URL de API del frontend
+
+En producción el frontend usa `/api` bajo su mismo origen. El reverse proxy debe
+enviar esa ruta a la API; no se admite `WEB_API_ORIGIN` en producción. Esto
+mantiene cookies, CSRF y `credentials: include` como tráfico same-origin.
+
+Para ejecutar API y web en puertos separados durante desarrollo:
+
+```powershell
+$env:NODE_ENV = "development"
+$env:WEB_API_ORIGIN = "http://127.0.0.1:4000"
+$env:FRONTEND_CSP_CONNECT_SOURCES = "http://127.0.0.1:4000"
+npm run dev:web
+```
+
+El origen solo procede del entorno del proceso; no se acepta desde query
+strings, `localStorage` ni otras entradas controlables por el navegador.
+
 ## Límites de lectura HTTP
 
 La API valida `Content-Length`, cuenta los bytes realmente recibidos y aplica timeout también a transferencias fragmentadas:
@@ -281,8 +324,10 @@ cabecera `Origin` continúan admitidos.
 
 API y frontend envían CSP, protección contra framing, `nosniff`, política de
 referencia y una `Permissions-Policy` restrictiva. El frontend sólo permite
-scripts y estilos propios, sin `unsafe-inline` ni `unsafe-eval`. Si el frontend
-de producción llama a una API de otro origen, declara ese origen en:
+scripts y estilos propios, sin `unsafe-inline` ni `unsafe-eval`. La
+personalización visual modifica las propiedades de la regla `:root` de la hoja
+CSS propia, sin crear atributos de estilo inline. En desarrollo, si el frontend
+llama a una API de otro origen, declara ese origen en:
 
 ```powershell
 $env:FRONTEND_CSP_CONNECT_SOURCES = "https://api.example.com"

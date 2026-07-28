@@ -224,6 +224,7 @@ async function main() {
 
     await waitForDatabase(databaseUrl);
     await run(process.execPath, ["scripts/db-migrate.js"], { env: testEnv });
+    await run(process.execPath, ["--test", "scripts/postgres-first-admin-bootstrap-test.js"], { env: testEnv });
     await run(process.execPath, ["scripts/db-migrate-json.js"], { env: testEnv });
     await verifyImportedCounts(databaseUrl, expected);
     await run(process.execPath, ["scripts/postgres-calendar-migration-test.js"], {

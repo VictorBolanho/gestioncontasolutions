@@ -1,6 +1,6 @@
-const API_BASE_URL =
-  document.querySelector('meta[name="api-base-url"]')?.getAttribute("content") ||
-  `${window.location.protocol}//${window.location.hostname}:4000`;
+const configuredApiRoot =
+  document.querySelector('meta[name="api-base-url"]')?.getAttribute("content") || "/api";
+const API_BASE_URL = configuredApiRoot === "/api" ? "" : configuredApiRoot.replace(/\/+$/, "");
 
 const NO_TEXT_MESSAGE = "No se pudo extraer texto legible del PDF. Revisa los datos manualmente.";
 
@@ -494,16 +494,20 @@ function formatStepperStatus(status) {
 }
 
 function applyTheme(theme) {
-  const root = document.documentElement;
-  root.style.setProperty("--color-primary", theme.colorPrimario);
-  root.style.setProperty("--color-sidebar", theme.colorSidebar);
-  root.style.setProperty("--color-secondary", theme.colorSecundario);
-  root.style.setProperty("--color-accent", theme.colorAcento);
-  root.style.setProperty("--color-bg", theme.colorFondo);
-  root.style.setProperty("--color-surface", theme.colorSuperficie);
-  root.style.setProperty("--color-border", theme.colorBorde);
-  root.style.setProperty("--color-text", theme.colorTextoPrincipal);
-  root.style.setProperty("--color-text-muted", theme.colorTextoSecundario);
+  const styleSheet = [...document.styleSheets].find((sheet) => sheet.href?.endsWith("/styles.css"));
+  const rootRule = styleSheet ? [...styleSheet.cssRules].find((rule) => rule.selectorText === ":root") : null;
+  if (!rootRule) {
+    throw new Error("No se pudo localizar la regla de tema segura.");
+  }
+  rootRule.style.setProperty("--color-primary", theme.colorPrimario);
+  rootRule.style.setProperty("--color-sidebar", theme.colorSidebar);
+  rootRule.style.setProperty("--color-secondary", theme.colorSecundario);
+  rootRule.style.setProperty("--color-accent", theme.colorAcento);
+  rootRule.style.setProperty("--color-bg", theme.colorFondo);
+  rootRule.style.setProperty("--color-surface", theme.colorSuperficie);
+  rootRule.style.setProperty("--color-border", theme.colorBorde);
+  rootRule.style.setProperty("--color-text", theme.colorTextoPrincipal);
+  rootRule.style.setProperty("--color-text-muted", theme.colorTextoSecundario);
 }
 
 function getValue(object, path) {
@@ -3909,7 +3913,7 @@ function companyDetailSectionSimple() {
           <div class="rut-detail-badges">
             ${renderDianComplianceBadges(company)}
           </div>
-          <p class="muted" style="margin-top: 10px;">Controles abiertos detectados: ${escapeHtml(String(openDianControls))}</p>
+          <p class="muted space-top-10">Controles abiertos detectados: ${escapeHtml(String(openDianControls))}</p>
         </section>
       </div>
       <div class="detail-grid detail-grid-legacy">
@@ -4251,7 +4255,7 @@ function companyTaxManagementSection() {
               }
             </section>
           `
-          : `<div class="summary-list-card" style="margin-top: 18px;"><strong>Selecciona una empresa</strong><span>Haz clic en gestionar para revisar sus responsabilidades, confirmar impuestos o agregar nuevos.</span></div>`
+          : `<div class="summary-list-card space-top-18"><strong>Selecciona una empresa</strong><span>Haz clic en gestionar para revisar sus responsabilidades, confirmar impuestos o agregar nuevos.</span></div>`
       }
     </section>
   `;
@@ -4430,7 +4434,7 @@ function companyTaxManagementSectionV2() {
               </section>
             </section>
           `
-          : `<div class="summary-list-card" style="margin-top: 18px;"><strong>Selecciona una empresa</strong><span>Haz clic en Abrir gestion para revisar sus impuestos y responsabilidades.</span></div>`
+          : `<div class="summary-list-card space-top-18"><strong>Selecciona una empresa</strong><span>Haz clic en Abrir gestion para revisar sus impuestos y responsabilidades.</span></div>`
       }
     </section>
   `;
@@ -5127,7 +5131,7 @@ function uploadSection() {
         </div>
       </div>
       ${messageCard(state.uploadMessage, state.uploadMessage?.startsWith("PDF cargado") ? "success" : "error")}
-      <div class="tab-row" style="margin-bottom: 18px;">
+      <div class="tab-row space-bottom-18">
         <button class="tab-button ${state.rutFlowMode === "create" ? "active" : ""}" type="button" data-rut-flow-mode="create">
           Crear desde RUT
         </button>
@@ -5162,7 +5166,7 @@ function uploadSection() {
           <span>Cargar PDF RUT</span>
         </button>
       </form>
-      <div class="review-summary-card" style="margin-top: 18px;">
+      <div class="review-summary-card space-top-18">
         <strong>Tenga en cuenta:</strong>
         <span>La inscripcion y la actualizacion pueden hacerse de forma virtual o asistida. Las actualizaciones con verificacion suelen requerir un tratamiento distinto al de la creacion inicial.</span>
       </div>
@@ -5791,7 +5795,7 @@ function companyDetailSection() {
         <div class="detail-item"><strong>Documento RUT</strong><span>${escapeHtml(company.documentoRut?.nombreArchivo || "No asociado")}</span></div>
         <div class="detail-item"><strong>Controles DIAN abiertos</strong><span>${escapeHtml(String(openDianControls))}</span></div>
       </div>
-      <section class="panel-card" style="margin-top: 20px;">
+      <section class="panel-card space-top-20">
         <div class="panel-header">
           <div>
             <div class="eyebrow">Cumplimiento DIAN</div>
@@ -5801,7 +5805,7 @@ function companyDetailSection() {
         <div class="rut-detail-badges">
           ${renderDianComplianceBadges(company)}
         </div>
-        <p class="muted" style="margin-top: 12px;">
+        <p class="muted space-top-12">
           Se detectaron ${escapeHtml(String(dianControls.length))} controles DIAN generados, ${escapeHtml(String(openDianControls))} abiertos.
         </p>
       </section>
@@ -5958,7 +5962,7 @@ function dashboardWorkloadCard(item, maxLoad) {
         <span>${escapeHtml(`${percentage}%`)}</span>
       </div>
       <div class="dashboard-workload-bar">
-        <span style="width:${percentage}%"></span>
+        <span class="progress-width-${percentage}"></span>
       </div>
       <div class="dashboard-workload-meta">
         <span>${escapeHtml(String(item.tareasPendientes || 0))} pendientes</span>
@@ -6041,7 +6045,7 @@ function dashboardDetailPanel(title, eyebrow, body, open = false) {
 
 function dashboardSection() {
   if (state.dashboardLoading) {
-    return `<section class="empty-state" style="padding: 32px;">Cargando indicadores gerenciales...</section>`;
+    return `<section class="empty-state padded-32">Cargando indicadores gerenciales...</section>`;
   }
 
   if (state.dashboardError) {
@@ -6051,7 +6055,7 @@ function dashboardSection() {
   const dashboard = state.dashboardData;
   if (!dashboard) {
     return `
-      <section class="empty-state" style="padding: 32px;">
+      <section class="empty-state padded-32">
         <h3 class="section-title">Dashboard sin cargar</h3>
         <p class="muted">Usa el boton para actualizar los indicadores con datos reales del sistema.</p>
         <button class="btn btn-primary" type="button" data-action="refresh-dashboard">Actualizar dashboard</button>
@@ -6121,7 +6125,7 @@ function dashboardSection() {
         <button class="btn btn-primary" type="button" data-action="refresh-dashboard">Actualizar</button>
       </div>
 
-      <section class="panel-card" style="margin-bottom: 20px;">
+      <section class="panel-card space-bottom-20">
         <div class="panel-header">
           <div>
             <div class="eyebrow">Filtros gerenciales</div>
@@ -6186,7 +6190,7 @@ function dashboardSection() {
             </select>
           </label>
         </div>
-        <div class="panel-actions" style="margin-top: 14px;">
+        <div class="panel-actions space-top-14">
           <button class="btn btn-primary" type="button" data-action="apply-dashboard-filters">Aplicar filtros</button>
           <button class="btn btn-secondary" type="button" data-action="clear-dashboard-filters">Limpiar filtros</button>
         </div>
@@ -6735,7 +6739,7 @@ function reportesSection() {
           </select>
         </label>
       </div>
-      <div class="panel-actions" style="margin-top: 16px;">
+      <div class="panel-actions space-top-16">
         ${
           hasPermission("exportar_reportes")
             ? `<button class="btn btn-primary" type="button" data-action="download-management-report">Exportar CSV gerencial</button>`
@@ -6776,7 +6780,7 @@ function reportesSection() {
       </article>
     </section>
 
-    <section class="detail-grid" style="margin-top: 20px;">
+    <section class="detail-grid space-top-20">
       <article class="panel-card">
         <div class="eyebrow">Lectura ejecutiva</div>
         <h4 class="section-title">Resumen del periodo</h4>
@@ -6830,7 +6834,7 @@ function reportesSection() {
       </article>
     </section>
 
-    <section class="panel-card" style="margin-top: 20px;">
+    <section class="panel-card space-top-20">
       <div class="panel-header">
         <div>
           <div class="eyebrow">Empresas</div>
@@ -6871,7 +6875,7 @@ function reportesSection() {
       </div>
     </section>
 
-    <section class="panel-card" style="margin-top: 20px;">
+    <section class="panel-card space-top-20">
       <div class="panel-header">
         <div>
           <div class="eyebrow">Agenda fiscal</div>
@@ -6950,7 +6954,7 @@ function auditoriaSection() {
         <div class="stat-value">${hasPermission("ver_logs_sistema") ? "Si" : "No"}</div>
       </article>
     </section>
-    <section class="panel-card" style="margin-top: 20px;">
+    <section class="panel-card space-top-20">
       <div class="panel-header">
         <div>
           <div class="eyebrow">Eventos</div>
@@ -8899,7 +8903,7 @@ function bindEvents() {
 
 async function start() {
   const app = document.querySelector("#app");
-  app.innerHTML = `<section class="empty-state" style="padding: 32px;">Cargando GestorConta...</section>`;
+  app.innerHTML = `<section class="empty-state padded-32">Cargando GestorConta...</section>`;
   clearLegacyAuthenticationStorage();
 
   try {

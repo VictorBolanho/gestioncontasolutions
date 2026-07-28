@@ -28,12 +28,36 @@ inline. HSTS requiere simultáneamente `NODE_ENV=production` y la confirmación
 operativa `HTTPS_CONFIRMED=true`, porque la aplicación no puede inferir por sí
 sola que todo el dominio público está servido exclusivamente por HTTPS.
 
+En producción, el navegador usa `/api` bajo el mismo origen que el frontend y
+el reverse proxy enruta ese prefijo hacia la API. `WEB_API_ORIGIN` queda
+reservado a development/test y se obtiene exclusivamente del entorno del
+proceso. El servidor estático publica una lista cerrada de activos, aplica
+fallback a `index.html` para rutas SPA sin extensión y rechaza traversal,
+codificación doble, separadores alternativos, bytes nulos y archivos privados.
+Los valores visuales variables se aplican mediante CSSOM sobre la regla `:root`
+de la hoja CSS autorizada por CSP; no se generan estilos inline.
+
 La protección de login mantiene cuotas progresivas separadas por identidad y
 dirección de origen. Sus contadores viven en memoria, tienen ventana y capacidad
 máximas y se limpian bajo demanda. Por tanto, esta protección sólo es consistente
 dentro de una instancia. Antes de desplegar múltiples réplicas se necesita un
 backend compartido para los contadores y bloqueos; esta etapa no incorpora Redis
 ni otro servicio adicional.
+
+## Bootstrap del primer administrador
+
+El bootstrap de producción es un comando PostgreSQL independiente. Solo funciona
+con `NODE_ENV=production` y `STORAGE_DRIVER=database`, y recibe correo, nombre y
+contraseña mediante variables de entorno suministradas como secretos. Usa el
+mismo scrypt vigente que el login.
+
+Un advisory lock transaccional serializa ejecuciones concurrentes. Dentro de la
+misma transacción se comprueba que no exista un owner activo, que haya exactamente
+una organización activa y que exista el rol `owner`; después se insertan usuario,
+relación de rol y evento de auditoría. Cualquier error revierte las tres
+operaciones. El evento no contiene correo, contraseña, hash ni información de
+conexión. Este mecanismo crea únicamente el primer administrador y no sustituye
+la administración normal de usuarios.
 
 ## Sesiones de navegador
 
