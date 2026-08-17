@@ -34,6 +34,22 @@ import {
   verifyPasswordCredential
 } from "./auth-crypto.js";
 import { createLoginLimiters } from "./auth-login-limiter.js";
+import {
+  appendAuthAudit,
+  authStorageUsesDatabase,
+  cleanupDatabaseAuthSessions,
+  createAuthSession,
+  deleteAuthSession,
+  findDatabaseAuthSession,
+  getAuthAudits,
+  getAuthCompanies,
+  getAuthOrganization,
+  getAuthSessions,
+  getAuthUsers,
+  replaceAuthAudits,
+  replaceAuthSessions,
+  saveAuthUser
+} from "./auth-storage.js";
 
 const DEFAULT_SESSION_TTL_MS = 1000 * 60 * 60 * 12;
 const MAX_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
@@ -331,18 +347,17 @@ function syncHierarchy(users, targetUser) {
   }
 }
 
-export function sanitizeUser(user) {
+function sanitizeUserWithContext(user, users, companies) {
   if (!user) {
     return null;
   }
 
-  const users = loadUsersDirectory();
   const resolvedUser = users.find((candidate) => candidate.id === user.id) || normalizeUserRecord(user);
   const effectivePermissions = getEffectivePermissions(resolvedUser);
   const moduleAccess = Object.fromEntries(
     Object.keys(MODULE_PERMISSION_RULES).map((moduleName) => [moduleName, canAccessModule(resolvedUser, moduleName)])
   );
-  const visibleCompanyIds = getAccessibleCompanyIds(resolvedUser, users);
+  const visibleCompanyIds = getAccessibleCompanyIds(resolvedUser, users, companies);
 
   return {
     id: resolvedUser.id,
@@ -381,13 +396,17 @@ export function sanitizeUser(user) {
   };
 }
 
+export function sanitizeUser(user) {
+  return sanitizeUserWithContext(user, loadUsersDirectory());
+}
+
 export function assertPermission(user, permission, message = "No tienes permisos para ejecutar esta accion.") {
   if (!hasPermission(user, permission)) {
     throw createAuthError(message, 403);
   }
 }
 
-export function getAccessibleCompanyIds(user, users = loadUsersDirectory()) {
+export function getAccessibleCompanyIds(user, users = loadUsersDirectory(), companies) {
   if (!user) {
     return [];
   }
@@ -398,7 +417,7 @@ export function getAccessibleCompanyIds(user, users = loadUsersDirectory()) {
   }
 
   if (hasPermission(resolvedUser, "ver_todas_empresas")) {
-    return getCompanies().map((company) => company.id);
+    return (companies || getCompanies()).map((company) => company.id);
   }
 
   const companyIds = new Set(getAssignedCompanies(resolvedUser));
@@ -738,6 +757,13 @@ export function hardenStoredSessions() {
   return sessions.length;
 }
 
+export async function hardenStoredSessionsAsync() {
+  if (!authStorageUsesDatabase()) {
+    return hardenStoredSessions();
+  }
+  return cleanupDatabaseAuthSessions();
+}
+
 const AUDIT_SECRET_KEYS = new Set(["token", "tokenhash", "hashtoken", "sessiontoken", "sessiontokenhash"]);
 
 function removeAuditSecrets(value) {
@@ -789,6 +815,28 @@ export function sanitizeHistoricalAuthenticationAudits() {
   return changedCount;
 }
 
+export async function sanitizeHistoricalAuthenticationAuditsAsync() {
+  if (!authStorageUsesDatabase()) {
+    return sanitizeHistoricalAuthenticationAudits();
+  }
+  const audits = await getAuthAudits();
+  let changedCount = 0;
+  const sanitized = audits.map((audit) => {
+    const isAuthenticationAudit =
+      audit?.modulo === "autenticacion" || audit?.recursoTipo === "sesion" || audit?.accion === "login";
+    if (!isAuthenticationAudit) {
+      return audit;
+    }
+    const result = removeAuditSecrets(audit);
+    changedCount += result.changed ? 1 : 0;
+    return result.value;
+  });
+  if (changedCount > 0) {
+    await replaceAuthAudits(sanitized);
+  }
+  return changedCount;
+}
+
 function getLoginLimitKeys(email, remoteAddress) {
   return {
     email: hashSessionToken(`email:${normalizeEmail(email)}`),
@@ -824,7 +872,7 @@ export async function login(email, password, { remoteAddress = "unknown" } = {})
     });
   }
 
-  const users = loadUsersDirectory();
+  const users = (await getAuthUsers()).map((user) => normalizeUserRecord(user));
   const user = users.find((candidate) => normalizeEmail(candidate.email) === normalizeEmail(email));
   const usableUser = user?.estado === "activo" ? user : null;
   activeLoginKdfs += 1;
@@ -849,24 +897,28 @@ export async function login(email, password, { remoteAddress = "unknown" } = {})
   }
   loginLimiters.email.reset(loginKeys.email);
 
-  const sessions = cleanupExpiredSessions(getSessions());
   const now = new Date();
   const token = crypto.randomBytes(32).toString("hex");
-  sessions.push({
+  const session = {
     token: formatSessionTokenHash(token),
     userId: usableUser.id,
     createdAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + getSessionTtlMs()).toISOString()
-  });
-  saveSessions(sessions);
+  };
+  if (authStorageUsesDatabase()) {
+    await createAuthSession(session);
+  } else {
+    const sessions = cleanupExpiredSessions(await getAuthSessions());
+    sessions.push(session);
+    await replaceAuthSessions(sessions);
+  }
 
   usableUser.ultimoLoginAt = now.toISOString();
   usableUser.updatedAt = now.toISOString();
-  saveUsers(users);
+  await saveAuthUser(usableUser, users);
 
-  const organization = getOrganization();
-  const audits = getAudits();
-  audits.push(
+  const organization = await getAuthOrganization();
+  await appendAuthAudit(
     createAuditEntry({
       organizacionId: organization.id,
       usuarioId: usableUser.id,
@@ -882,12 +934,11 @@ export async function login(email, password, { remoteAddress = "unknown" } = {})
       }
     })
   );
-  saveAudits(audits);
 
   return {
     token,
     expiresAt: new Date(now.getTime() + getSessionTtlMs()).toISOString(),
-    user: sanitizeUser(usableUser)
+    user: await sanitizeUserAsync(usableUser, users)
   };
 }
 
@@ -923,6 +974,49 @@ export function getSessionSummary(token) {
   return {
     user: sanitizeUser(user),
     accessibleCompanyIds: getAccessibleCompanyIds(user)
+  };
+}
+
+export async function logoutAsync(token) {
+  if (!authStorageUsesDatabase()) {
+    logout(token);
+    return;
+  }
+  await deleteAuthSession(formatSessionTokenHash(token));
+}
+
+export async function getSessionUserAsync(token) {
+  if (!authStorageUsesDatabase()) {
+    return getSessionUser(token);
+  }
+  if (!normalizeText(token)) {
+    return null;
+  }
+  await cleanupDatabaseAuthSessions();
+  const session = await findDatabaseAuthSession(formatSessionTokenHash(token));
+  if (!session) {
+    return null;
+  }
+  const users = (await getAuthUsers()).map((user) => normalizeUserRecord(user));
+  return users.find((candidate) => candidate.id === session.userId && candidate.estado === "activo") || null;
+}
+
+async function sanitizeUserAsync(user, users) {
+  const companies = await getAuthCompanies();
+  return sanitizeUserWithContext(user, users, companies);
+}
+
+export async function getSessionSummaryForUserAsync(user) {
+  if (!user) {
+    return null;
+  }
+  const [users, companies] = await Promise.all([
+    getAuthUsers().then((items) => items.map((item) => normalizeUserRecord(item))),
+    getAuthCompanies()
+  ]);
+  return {
+    user: sanitizeUserWithContext(user, users, companies),
+    accessibleCompanyIds: getAccessibleCompanyIds(user, users, companies)
   };
 }
 

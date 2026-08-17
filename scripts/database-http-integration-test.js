@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import { performance } from "node:perf_hooks";
+import { Client } from "pg";
 import { TEST_USERS } from "./test-credentials.js";
 
 const API_BASE_URL = String(process.env.API_BASE_URL || "").trim();
@@ -13,6 +15,20 @@ if (!Number.isSafeInteger(EXPECTED_IMPORTED_CALENDAR_COUNT) || EXPECTED_IMPORTED
 }
 
 const timings = [];
+
+function sessionHash(token) {
+  return `sha256$${crypto.createHash("sha256").update(token).digest("hex")}`;
+}
+
+async function queryDatabase(sql, params = []) {
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  try {
+    return await client.query(sql, params);
+  } finally {
+    await client.end();
+  }
+}
 
 function pass(message) {
   console.log(`[ok] ${message}`);
@@ -80,6 +96,20 @@ async function main() {
   const ownerToken = await login(TEST_USERS.owner);
   pass("Login valido de owner");
 
+  const persistedOwnerSession = await queryDatabase("SELECT COUNT(*)::int AS count FROM sessions WHERE token = $1", [
+    sessionHash(ownerToken)
+  ]);
+  assert.equal(persistedOwnerSession.rows[0].count, 1);
+  const loginAudit = await queryDatabase(
+    `SELECT payload::text AS payload FROM audit_logs
+     WHERE accion = 'login'
+     ORDER BY created_at DESC LIMIT 1`
+  );
+  assert.equal(loginAudit.rowCount, 1);
+  assert.doesNotMatch(loginAudit.rows[0].payload, /password|contrasena|sessiontoken|tokenhash|sha256\$/i);
+  pass("Sesion de login persistida directamente en PostgreSQL");
+  pass("Auditoria de login persistida sin credenciales ni tokens");
+
   await expectStatus("login invalido", "/api/auth/login", 401, {
     method: "POST",
     body: { email: `inexistente-${suffix}@example.test`, password: "clave-invalida-de-prueba" }
@@ -89,6 +119,31 @@ async function main() {
   const meta = await expectStatus("metadata", "/api/meta", 200);
   assert.equal(meta.version, "0.1.0");
   await expectStatus("sesion", "/api/auth/session", 200, { token: ownerToken });
+  await expectStatus("sesion inexistente", "/api/auth/session", 401, {
+    token: crypto.randomBytes(32).toString("hex")
+  });
+
+  const expiringToken = await login(TEST_USERS.apprentice);
+  await queryDatabase(
+    `UPDATE sessions
+     SET expires_at = NOW() - INTERVAL '1 second',
+         payload = jsonb_set(payload, '{expiresAt}', to_jsonb((NOW() - INTERVAL '1 second')::text), true)
+     WHERE token = $1`,
+    [sessionHash(expiringToken)]
+  );
+  await expectStatus("sesion vencida", "/api/auth/session", 401, { token: expiringToken });
+  const expiredRemaining = await queryDatabase("SELECT COUNT(*)::int AS count FROM sessions WHERE token = $1", [
+    sessionHash(expiringToken)
+  ]);
+  assert.equal(expiredRemaining.rows[0].count, 0);
+
+  const concurrentAuthStartedAt = performance.now();
+  const concurrentSessions = await Promise.all(
+    Array.from({ length: 12 }, () => request("/api/auth/session", { token: ownerToken }))
+  );
+  assert.ok(concurrentSessions.every((item) => item.response.status === 200));
+  const concurrentAuthMs = performance.now() - concurrentAuthStartedAt;
+  pass(`Doce validaciones de sesion concurrentes completadas (${Math.round(concurrentAuthMs)} ms)`);
   pass("Health metadata y sesion HTTP operativos");
 
   const companiesBefore = await expectStatus("empresas importadas", "/api/companies", 200, { token: ownerToken });
@@ -346,6 +401,10 @@ async function main() {
 
   await expectStatus("logout", "/api/auth/logout", 200, { method: "POST", token: juniorToken });
   await expectStatus("sesion invalidada", "/api/auth/session", 401, { token: juniorToken });
+  const loggedOutRemaining = await queryDatabase("SELECT COUNT(*)::int AS count FROM sessions WHERE token = $1", [
+    sessionHash(juniorToken)
+  ]);
+  assert.equal(loggedOutRemaining.rows[0].count, 0);
   pass("Logout invalida la sesion");
 
   const sorted = [...timings].sort((a, b) => a.elapsedMs - b.elapsedMs);
@@ -360,6 +419,37 @@ async function main() {
       maxMs: Math.round(sorted.at(-1)?.elapsedMs || 0)
     })}`
   );
+  const summarize = (items) => {
+    const values = items.map((item) => item.elapsedMs).sort((a, b) => a - b);
+    if (values.length === 0) {
+      return { operations: 0, averageMs: 0, p95Ms: 0, maxMs: 0 };
+    }
+    return {
+      operations: values.length,
+      averageMs: Math.round(values.reduce((sum, value) => sum + value, 0) / values.length),
+      p95Ms: Math.round(values[Math.min(values.length - 1, Math.floor(values.length * 0.95))]),
+      maxMs: Math.round(values.at(-1))
+    };
+  };
+  console.log(
+    `AUTH_HTTP_TIMINGS=${JSON.stringify({
+      loginValid: summarize(
+        timings.filter(
+          (item) => item.method === "POST" && item.pathname === "/api/auth/login" && item.status === 200
+        )
+      ),
+      loginRejected: summarize(
+        timings.filter(
+          (item) => item.method === "POST" && item.pathname === "/api/auth/login" && item.status !== 200
+        )
+      ),
+      session: summarize(timings.filter((item) => item.method === "GET" && item.pathname === "/api/auth/session")),
+      simpleAuthenticated: summarize(timings.filter((item) => item.method === "GET" && item.pathname === "/api/companies")),
+      logout: summarize(timings.filter((item) => item.method === "POST" && item.pathname === "/api/auth/logout")),
+      concurrentSessionRequests: 12,
+      concurrentSessionTotalMs: Math.round(concurrentAuthMs)
+    })}`
+  );
   if (process.env.INTEGRATION_STATE_FILE) {
     await fs.writeFile(
       process.env.INTEGRATION_STATE_FILE,
@@ -367,7 +457,8 @@ async function main() {
         companyId: company.id,
         calendarId: calendar.id,
         taskId: task.id,
-        companyNit: nit
+        companyNit: nit,
+        sessionToken: ownerToken
       }),
       { encoding: "utf8", flag: "wx" }
     );

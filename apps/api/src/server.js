@@ -110,18 +110,20 @@ import {
 } from "./lib/dashboard-service.js";
 import { canManageTaskAsReviewer, canUserAccessTask } from "./lib/access-control.js";
 import { ensureStorage } from "./lib/storage.js";
+import { createStorageProvider } from "./lib/storage-provider.js";
+import { getShutdownTimeoutMs, installGracefulShutdown } from "./lib/graceful-shutdown.js";
 import { getAudits, getUsers } from "./lib/storage.js";
 import {
   canUserAccessCompany as canUserAccessCompanyByHierarchy,
   createUser,
-  getSessionSummary,
-  getSessionUser,
-  hardenStoredSessions,
+  getSessionSummaryForUserAsync,
+  getSessionUserAsync,
+  hardenStoredSessionsAsync,
   listUsers,
   listSupervisedUsers,
   login,
-  logout,
-  sanitizeHistoricalAuthenticationAudits,
+  logoutAsync,
+  sanitizeHistoricalAuthenticationAuditsAsync,
   updateUser
 } from "./lib/auth-service.js";
 
@@ -139,8 +141,11 @@ const browserSessionConfiguration = getBrowserSessionConfiguration(
 );
 validateHttpBodyConfiguration();
 ensureStorage();
-hardenStoredSessions();
-sanitizeHistoricalAuthenticationAudits();
+await hardenStoredSessionsAsync();
+await sanitizeHistoricalAuthenticationAuditsAsync();
+const storageProvider = createStorageProvider();
+await storageProvider.start();
+let shuttingDown = false;
 
 function sendActionError(response, error) {
   sendApiFailure(response, error, "No se pudo actualizar la obligacion.");
@@ -311,7 +316,7 @@ function buildVisibleAuditEntries(currentUser) {
     }));
 }
 
-const server = http.createServer((request, response) => {
+const server = http.createServer(async (request, response) => {
   for (const [name, value] of Object.entries(apiDefensiveHeaders)) {
     response.setHeader(name, value);
   }
@@ -323,7 +328,13 @@ const server = http.createServer((request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
   const authentication = resolveRequestAuthentication(request, browserSessionConfiguration);
   const authToken = authentication.token;
-  const currentUser = getSessionUser(authToken);
+  let currentUser;
+  try {
+    currentUser = await getSessionUserAsync(authToken);
+  } catch (error) {
+    sendApiFailure(response, error, "No se pudo validar la sesion.", { defaultStatusCode: 500 });
+    return;
+  }
 
   if (request.method === "OPTIONS") {
     sendEmpty(response);
@@ -347,6 +358,22 @@ const server = http.createServer((request, response) => {
       status: "ok",
       app: "gestorconta-api",
       timestamp: new Date().toISOString()
+    });
+    return;
+  }
+
+  if (url.pathname === "/ready") {
+    if (shuttingDown) {
+      sendJson(response, 503, { status: "not_ready" });
+      return;
+    }
+    storageProvider.readiness().then((result) => {
+      if (response.writableEnded) {
+        return;
+      }
+      sendJson(response, result.ready ? 200 : 503, {
+        status: result.ready ? "ready" : "not_ready"
+      });
     });
     return;
   }
@@ -427,7 +454,7 @@ const server = http.createServer((request, response) => {
       return;
     }
 
-    const summary = getSessionSummary(authToken);
+    const summary = await getSessionSummaryForUserAsync(currentUser);
     sendJson(
       response,
       200,
@@ -442,8 +469,13 @@ const server = http.createServer((request, response) => {
   }
 
   if (request.method === "POST" && url.pathname === "/api/auth/logout") {
-    if (authToken) {
-      logout(authToken);
+    try {
+      if (authToken) {
+        await logoutAsync(authToken);
+      }
+    } catch (error) {
+      sendApiFailure(response, error, "No se pudo cerrar la sesion.", { defaultStatusCode: 500 });
+      return;
     }
     if (authentication.mode === "cookie") {
       response.setHeader("Set-Cookie", buildExpiredSessionCookie(browserSessionConfiguration));
@@ -1799,13 +1831,26 @@ server.on("error", (error) => {
       `No se pudo iniciar GestorConta API en http://localhost:${port} porque el puerto ${port} ya esta en uso.`
     );
     console.error("Cierra la instancia anterior o cambia el puerto antes de volver a intentarlo.");
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
 
   console.error("No se pudo iniciar GestorConta API.", error);
-  process.exit(1);
+  process.exitCode = 1;
 });
 
 server.listen(port, () => {
   console.log(`GestorConta API disponible en http://localhost:${port}`);
+});
+
+installGracefulShutdown({
+  name: "gestorconta-api",
+  server,
+  timeoutMs: getShutdownTimeoutMs(),
+  markNotReady() {
+    shuttingDown = true;
+  },
+  closeResources() {
+    return storageProvider.close();
+  }
 });

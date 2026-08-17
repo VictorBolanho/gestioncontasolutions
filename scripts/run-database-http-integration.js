@@ -27,18 +27,18 @@ function waitForExit(child) {
 
 async function stopChild(child) {
   if (!child || child.exitCode !== null) {
-    return;
+    return true;
   }
   const exited = waitForExit(child);
   child.kill();
-  await Promise.race([
-    exited,
+  return Promise.race([
+    exited.then(() => true),
     new Promise((resolve) =>
       setTimeout(() => {
         if (child.exitCode === null) {
           child.kill("SIGKILL");
         }
-        resolve();
+        resolve(false);
       }, 3000)
     )
   ]);
@@ -82,6 +82,12 @@ function runHarness(stateFile) {
 }
 
 async function verifyPersistence(state) {
+  const persistedSessionResponse = await fetch(`${apiBaseUrl}/api/auth/session`, {
+    headers: { Authorization: `Bearer ${state.sessionToken}` }
+  });
+  assert.equal(persistedSessionResponse.status, 200, "La sesion no persistio tras reiniciar la API.");
+  console.log("[ok] Sesion PostgreSQL confirmada tras reiniciar la API.");
+
   const loginResponse = await fetch(`${apiBaseUrl}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -119,7 +125,7 @@ async function main() {
     await waitForApi(api);
     console.log(`[ok] API database temporal disponible en ${apiBaseUrl}.`);
     await runHarness(stateFile);
-    await stopChild(api);
+    assert.equal(await stopChild(api), true, "La API no completo el cierre ordenado antes del plazo.");
     api = spawn(process.execPath, ["apps/api/src/server.js"], {
       cwd: process.cwd(),
       env: apiEnv,
@@ -128,6 +134,8 @@ async function main() {
     });
     await waitForApi(api);
     await verifyPersistence(JSON.parse(await fs.readFile(stateFile, "utf8")));
+    assert.equal(await stopChild(api), true, "La API reiniciada no completo el cierre ordenado antes del plazo.");
+    api = undefined;
   } finally {
     await stopChild(api);
     await fs.rm(stateFile, { force: true });
