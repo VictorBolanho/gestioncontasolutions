@@ -4,6 +4,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runtimeEnvironment } from "../api/src/lib/runtime-environment.js";
 import { getDefensiveHeaders } from "../api/src/lib/http-security.js";
+import {
+  getShutdownTimeoutMs,
+  installGracefulShutdown
+} from "../api/src/lib/graceful-shutdown.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -155,13 +159,19 @@ export function startWebServer({ env = process.env } = {}) {
         `No se pudo iniciar GestorConta Web en http://localhost:${port} porque el puerto ${port} ya esta en uso.`
       );
       console.error("Cierra la instancia anterior o cambia el puerto antes de volver a intentarlo.");
-      process.exit(1);
+      process.exitCode = 1;
+      return;
     }
     console.error("No se pudo iniciar GestorConta Web.");
-    process.exit(1);
+    process.exitCode = 1;
   });
   server.listen(port, () => {
     console.log(`GestorConta Web disponible en http://localhost:${port} (${nodeEnvironment})`);
+  });
+  installGracefulShutdown({
+    name: "gestorconta-web",
+    server,
+    timeoutMs: getShutdownTimeoutMs(env)
   });
   return server;
 }

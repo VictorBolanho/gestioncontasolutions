@@ -62,7 +62,11 @@ async function main() {
   }
 
   for (const collectionName of COLLECTION_ORDER) {
-    await saveCollectionToDatabase(collectionName, data[collectionName]);
+    try {
+      await saveCollectionToDatabase(collectionName, data[collectionName]);
+    } catch (error) {
+      throw new Error(`No se pudo importar la coleccion ${collectionName}.`, { cause: error });
+    }
   }
 
   const afterCounts = beforeCounts;
