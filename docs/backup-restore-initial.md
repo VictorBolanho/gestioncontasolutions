@@ -1,5 +1,8 @@
 # Respaldo y restauracion inicial - Fase 8
 
+Este documento conserva la contingencia del driver JSON. Para el piloto PostgreSQL,
+incluido el volumen persistente de PDF RUT, usa `docs/deployment-testing.md`.
+
 ## Antes de migrar
 
 Respaldar:

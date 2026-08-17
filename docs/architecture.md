@@ -322,6 +322,30 @@ La arquitectura actual separa:
 Esto permite reemplazar la persistencia local por:
 
 - PostgreSQL;
+
+### Fase 0 de acceso PostgreSQL asíncrono
+
+La infraestructura dispone de un `Pool` reutilizable y perezoso por proceso, con
+límites validados, métricas no sensibles, health check y cierre idempotente. Las
+transacciones asíncronas adquieren y liberan un cliente, delimitan
+`BEGIN`/`COMMIT`/`ROLLBACK`, validan aislamiento y timeout, y solo permiten
+reintentos cuando la operación se declara explícitamente idempotente.
+
+El contrato `StorageProvider` selecciona exactamente un driver (`json` o
+`database`) y expone ciclo de vida asíncrono, readiness y transacciones cuando el
+driver las soporta. Durante esta fase no se migran consumidores ni colecciones:
+el bridge y el worker síncronos siguen siendo el escritor operativo de PostgreSQL,
+sin dual-write. JSON permanece como driver local y de pruebas.
+
+`/health` es liveness y conserva su respuesta histórica. `/ready` devuelve 200
+solo si el almacenamiento está listo; para PostgreSQL verifica conexión y que no
+haya migraciones pendientes. Al recibir SIGTERM o SIGINT, API y frontend dejan de
+aceptar conexiones, la API pasa a no-ready, drenan solicitudes dentro de
+`HTTP_SHUTDOWN_TIMEOUT_MS` y cierran sus recursos una sola vez.
+
+Las migraciones toman un advisory lock estable durante el cálculo y aplicación de
+pendientes. El lock se libera en `finally`; los rollbacks siguen siendo comandos
+explícitos y nunca se ejecutan automáticamente durante el arranque.
 - ORM o repositorios;
 - almacenamiento real de archivos;
 - autenticacion/autorizacion real;

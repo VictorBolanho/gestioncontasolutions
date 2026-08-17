@@ -10,6 +10,7 @@ Los documentos funcionales y visuales base del proyecto son:
 - `docs/json-to-database-migration.md`
 - `docs/local-database-setup.md`
 - `docs/backup-restore-initial.md`
+- `docs/deployment-testing.md`
 
 ## Estado actual del proyecto
 
@@ -222,6 +223,17 @@ npm run db:migrate-json
 npm run test:db
 ```
 
+Cada comando tiene una finalidad distinta:
+
+- `db:migrate` aplica cambios versionados de esquema.
+- `db:init:deployment` crea la unica organizacion tecnica cuando la base esta vacia y sincroniza roles/permisos.
+- `db:bootstrap-admin` crea de forma idempotente el primer owner de produccion.
+- `db:seed` carga catalogos tecnicos y los 536 calendarios sobre exactamente una organizacion activa; no forma parte del arranque normal del piloto.
+- `db:seed:demo` reemplaza las colecciones demo en una transaccion y solo se admite con semillas demo habilitadas.
+- `db:migrate-json` importa las 15 colecciones operativas desde JSON validado.
+
+El orden del despliegue controlado es `migrate → initialize → bootstrap → up`.
+
 ## Entorno y credenciales de desarrollo
 
 `NODE_ENV` es obligatorio y sólo acepta `development`, `test` o `production`. La aplicación no asume un entorno cuando la variable está ausente.
@@ -254,7 +266,7 @@ npm run dev:api
 
 ## Primer administrador PostgreSQL
 
-Después de aplicar migraciones y la semilla técnica, el primer owner de
+Después de aplicar migraciones y la inicializacion tecnica, el primer owner de
 producción se crea con un comando independiente:
 
 ```powershell
@@ -471,6 +483,8 @@ node scripts/reset-fiscal-data.js --confirm --keep-calendar-seeds
 ## Endpoints principales disponibles
 
 - `GET /health`
+- `GET /ready` comprueba que el almacenamiento esté disponible; con PostgreSQL
+  también exige que no existan migraciones pendientes.
 - `POST /api/auth/login`
 - `GET /api/auth/session`
 - `POST /api/auth/logout`
@@ -571,6 +585,12 @@ node scripts/reset-fiscal-data.js --confirm --keep-calendar-seeds
 ## Limitaciones actuales
 
 - La persistencia operativa por defecto sigue en JSON mientras se cierra la transicion a PostgreSQL.
+- La Fase 0 de la arquitectura asíncrona agrega un pool PostgreSQL persistente por
+  proceso, transacciones Promise, readiness y cierre ordenado. Las rutas operativas
+  continúan usando temporalmente el bridge síncrono: no existe escritura dual y
+  cada proceso conserva un único mecanismo escritor por operación.
+- Las migraciones toman un advisory lock de PostgreSQL antes de calcular pendientes,
+  por lo que dos despliegues concurrentes no aplican una misma migración dos veces.
 - Catalogo CIIU inicial, no completo.
 - Extraccion RUT basada en texto PDF, no OCR completo.
 - Catalogo de impuestos editable, pero aun sin importacion masiva.
@@ -580,6 +600,7 @@ node scripts/reset-fiscal-data.js --confirm --keep-calendar-seeds
 - El envio real de correo sigue fuera del alcance actual.
 - El proyecto no define scripts formales de `lint` ni `build` todavia.
 - Las pruebas de integracion real contra PostgreSQL requieren un entorno con base de datos disponible.
+- El piloto soporta una sola organizacion, una sola instancia y baja concurrencia. El rate limiter permanece en memoria y TLS termina fuera de Compose.
 
 ## Que queda pendiente
 
