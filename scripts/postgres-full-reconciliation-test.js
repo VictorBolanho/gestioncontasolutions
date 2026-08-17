@@ -1,9 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
 import { COLLECTION_ORDER } from "../apps/api/src/db/entity-definitions.js";
-import { exportCollectionsFromDatabase } from "../apps/api/src/db/database-storage.js";
+import {
+  exportCollectionsFromDatabase,
+  getCollectionFromDatabase,
+  saveCollectionToDatabase
+} from "../apps/api/src/db/database-storage.js";
 import { validateMigrationData } from "../apps/api/src/db/migration-validation.js";
 import { closePgPool, withPgClient } from "../apps/api/src/db/postgres-client.js";
+import { resolveConfiguredDataDirectory } from "../apps/api/src/lib/data-directory.js";
+
+const sourceDataDir = resolveConfiguredDataDirectory(path.join("apps", "api", "data"));
 
 const fileMap = Object.freeze({
   organization: "organization.json",
@@ -53,7 +60,7 @@ async function readSourceData() {
   const raw = {};
   for (const collectionName of COLLECTION_ORDER) {
     raw[collectionName] = JSON.parse(
-      fs.readFileSync(path.join("apps", "api", "data", fileMap[collectionName]), "utf8")
+      fs.readFileSync(path.join(sourceDataDir, fileMap[collectionName]), "utf8")
     );
   }
   return raw;
@@ -76,6 +83,47 @@ async function getTableCounts() {
   });
 }
 
+async function verifyLegacyCalendarReadSave(expectedCount) {
+  const legacy = await withPgClient(async (client) => {
+    const { rows } = await client.query(`
+      UPDATE fiscal_calendars
+      SET payload = payload - 'organizacionId'
+      WHERE id = (SELECT id FROM fiscal_calendars ORDER BY id LIMIT 1)
+      RETURNING id, organizacion_id
+    `);
+    return rows[0];
+  });
+  if (!legacy?.id || !legacy?.organizacion_id) {
+    fail("No se pudo preparar un calendario legado para la regresion read-save.");
+  }
+
+  const calendars = await getCollectionFromDatabase("fiscalCalendars");
+  if (calendars.length !== expectedCount) {
+    fail(`La lectura read-save devolvio ${calendars.length} calendarios; se esperaban ${expectedCount}.`);
+  }
+  const hydrated = calendars.find((calendar) => calendar.id === legacy.id);
+  if (hydrated?.organizacionId !== legacy.organizacion_id) {
+    fail("La lectura no hidrato organizacionId desde la columna relacional.");
+  }
+
+  await saveCollectionToDatabase("fiscalCalendars", calendars);
+  const repaired = await withPgClient(async (client) => {
+    const { rows } = await client.query(
+      `SELECT organizacion_id, payload ->> 'organizacionId' AS payload_organization_id
+       FROM fiscal_calendars WHERE id = $1`,
+      [legacy.id]
+    );
+    return rows[0];
+  });
+  if (
+    repaired?.organizacion_id !== legacy.organizacion_id ||
+    repaired?.payload_organization_id !== legacy.organizacion_id
+  ) {
+    fail("El guardado read-save no reparo el payload sin preservar la organizacion relacional.");
+  }
+  console.log(`[ok] Read-save reparo organizacionId y preservo ${expectedCount} calendarios.`);
+}
+
 async function main() {
   if (String(process.env.NODE_ENV || "").trim().toLowerCase() !== "test") {
     fail("Define NODE_ENV=test. La reconciliacion se niega a ejecutarse fuera de pruebas.");
@@ -89,6 +137,7 @@ async function main() {
 
   const sourceValidation = validateMigrationData(await readSourceData());
   const source = sourceValidation.data;
+  await verifyLegacyCalendarReadSave(source.fiscalCalendars.length);
   const target = await exportCollectionsFromDatabase();
   const targetValidation = validateMigrationData(target);
   const differences = [];

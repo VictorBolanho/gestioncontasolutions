@@ -191,8 +191,34 @@ async function syncUserRelations(client, users) {
   }
 }
 
-function mapRowsToPayload(rows) {
-  return rows.map((row) => row.payload);
+function mapRowToPayload(definition, row) {
+  if (definition.table !== "fiscal_calendars") {
+    return row.payload;
+  }
+
+  const relationalOrganizationId = String(row.organizacion_id || "").trim();
+  if (!relationalOrganizationId) {
+    throw new Error(`El calendario ${row.payload?.id || "<sin-id>"} no tiene organizacion_id relacional.`);
+  }
+  if (!row.payload || typeof row.payload !== "object" || Array.isArray(row.payload)) {
+    throw new Error(`El calendario ${row.payload?.id || "<sin-id>"} no tiene un payload JSONB valido.`);
+  }
+
+  const payloadOrganizationId = String(row.payload.organizacionId || "").trim();
+  if (payloadOrganizationId && payloadOrganizationId !== relationalOrganizationId) {
+    throw new Error(
+      `El calendario ${row.payload.id || "<sin-id>"} tiene organizacionId divergente entre payload y columna relacional.`
+    );
+  }
+
+  return {
+    ...row.payload,
+    organizacionId: relationalOrganizationId
+  };
+}
+
+function mapRowsToPayload(definition, rows) {
+  return rows.map((row) => mapRowToPayload(definition, row));
 }
 
 export async function getCollectionFromDatabase(collectionName) {
@@ -202,38 +228,45 @@ export async function getCollectionFromDatabase(collectionName) {
   }
 
   return withPgClient(async (client) => {
+    const projectedColumns = definition.table === "fiscal_calendars"
+      ? "payload, organizacion_id"
+      : "payload";
     const { rows } = await client.query(
-      `SELECT payload FROM ${quoteIdentifier(definition.table)} ORDER BY ${definition.orderBy}`
+      `SELECT ${projectedColumns} FROM ${quoteIdentifier(definition.table)} ORDER BY ${definition.orderBy}`
     );
     if (definition.mode === "singleton") {
       return rows[0]?.payload || {};
     }
-    return mapRowsToPayload(rows);
+    return mapRowsToPayload(definition, rows);
   });
 }
 
-export async function saveCollectionToDatabase(collectionName, value) {
+export async function saveCollectionToDatabaseWithClient(client, collectionName, value) {
   const definition = COLLECTION_DEFINITIONS[collectionName];
   if (!definition) {
     throw new Error(`Coleccion no soportada por el driver database: ${collectionName}`);
   }
 
-  return withPgTransaction(async (client) => {
-    if (collectionName === "users") {
-      await syncStaticSecurityData(client);
-    }
+  if (collectionName === "users") {
+    await syncStaticSecurityData(client);
+  }
 
-    const items = definition.mode === "singleton" ? [value] : value;
-    if (!Array.isArray(items)) {
-      throw new Error(`La coleccion ${collectionName} esperaba un arreglo de registros.`);
-    }
+  const items = definition.mode === "singleton" ? [value] : value;
+  if (!Array.isArray(items)) {
+    throw new Error(`La coleccion ${collectionName} esperaba un arreglo de registros.`);
+  }
 
-    await upsertRows(client, definition, items);
+  await upsertRows(client, definition, items);
 
-    if (collectionName === "users") {
-      await syncUserRelations(client, items);
-    }
-  });
+  if (collectionName === "users") {
+    await syncUserRelations(client, items);
+  }
+}
+
+export async function saveCollectionToDatabase(collectionName, value) {
+  return withPgTransaction((client) =>
+    saveCollectionToDatabaseWithClient(client, collectionName, value)
+  );
 }
 
 export async function exportCollectionsFromDatabase() {
