@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { Client } from "pg";
 import { createPasswordCredential } from "../apps/api/src/lib/auth-crypto.js";
 
@@ -12,8 +14,10 @@ const databaseName = "gestorconta_temp_test";
 const databaseUser = "gestorconta_temp_user";
 const databasePassword = `gestorconta-temp-password-${crypto.randomBytes(12).toString("hex")}`;
 const resourceLabel = "com.gestorconta.purpose=temporary-isolated-postgres-test";
+const bootstrapOnly = process.argv.includes("--bootstrap-only");
 let containerCreated = false;
 let volumeCreated = false;
+let fixtureRoot = "";
 
 if (String(process.env.DATABASE_URL || "").trim()) {
   throw new Error("Esta prueba rechaza DATABASE_URL heredada; crea y usa exclusivamente su propia base temporal.");
@@ -73,10 +77,36 @@ async function waitForHealthy() {
   throw new Error("PostgreSQL temporal no quedo saludable dentro del plazo.");
 }
 
-async function readExpectedCounts() {
+async function createTemporaryFixture(password) {
+  fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "gestorconta-postgres-fixture-"));
+  const dataDir = path.join(fixtureRoot, "data");
+  await fs.mkdir(path.join(dataDir, "uploads", "rut"), { recursive: true });
+  const jsonFiles = (await fs.readdir("apps/api/data")).filter((name) => name.endsWith(".json"));
+  if (jsonFiles.length !== 15) {
+    throw new Error(`Se esperaban 15 JSON operativos y se encontraron ${jsonFiles.length}.`);
+  }
+  for (const fileName of jsonFiles) {
+    await fs.copyFile(path.join("apps/api/data", fileName), path.join(dataDir, fileName));
+  }
+  const env = {
+    ...process.env,
+    NODE_ENV: "test",
+    ALLOW_DEMO_SEEDS: "true",
+    DEV_SEED_PASSWORD: password,
+    STORAGE_DRIVER: "json",
+    GESTORCONTA_TEST_ROOT: fixtureRoot,
+    GESTORCONTA_DATA_DIR: dataDir,
+    GESTORCONTA_REQUIRE_TEMP_DATA_DIR: "1"
+  };
+  delete env.DATABASE_URL;
+  await run(process.execPath, ["scripts/reset-dev-data.js", "--confirm", "--keep-demo-seeds"], { env });
+  return { dataDir, env };
+}
+
+async function readExpectedCounts(dataDir = "apps/api/data") {
   const [users, calendars] = await Promise.all([
-    fs.readFile("apps/api/data/users.json", "utf8").then(JSON.parse),
-    fs.readFile("apps/api/data/fiscal-calendars.json", "utf8").then(JSON.parse)
+    fs.readFile(path.join(dataDir, "users.json"), "utf8").then(JSON.parse),
+    fs.readFile(path.join(dataDir, "fiscal-calendars.json"), "utf8").then(JSON.parse)
   ]);
   if (!Array.isArray(users) || !Array.isArray(calendars)) {
     throw new Error("Los origenes JSON de usuarios o calendarios no son arreglos.");
@@ -98,6 +128,56 @@ async function verifyImportedCounts(databaseUrl, expected) {
       );
     }
     console.log(`IMPORTED_COUNTS=${JSON.stringify({ users, fiscalCalendars: calendars })}`);
+  } finally {
+    await client.end();
+  }
+}
+
+async function verifyTechnicalSeed(databaseUrl, expectedCalendarCount) {
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    const result = await client.query(`
+      SELECT
+        COUNT(*)::int AS count,
+        COUNT(DISTINCT organizacion_id)::int AS organizations,
+        COUNT(*) FILTER (
+          WHERE NULLIF(BTRIM(payload ->> 'organizacionId'), '') = organizacion_id
+        )::int AS hydrated_payloads
+      FROM fiscal_calendars
+    `);
+    const row = result.rows[0];
+    if (
+      row.count !== expectedCalendarCount ||
+      row.organizations !== 1 ||
+      row.hydrated_payloads !== expectedCalendarCount
+    ) {
+      throw new Error(`Seed tecnico inconsistente: ${JSON.stringify(row)}.`);
+    }
+    console.log(`TECHNICAL_SEED_CALENDARS=${row.count}`);
+    await client.query(`
+      TRUNCATE TABLE
+        sessions,
+        audit_logs,
+        alerts,
+        fiscal_tasks,
+        fiscal_calendar_versions,
+        fiscal_calendars,
+        company_obligations,
+        inferred_tax_rules,
+        tax_rules,
+        taxes,
+        document_extractions,
+        documents,
+        supervisor_assignments,
+        company_assignments,
+        user_permissions,
+        user_roles,
+        users,
+        companies,
+        organizations
+      RESTART IDENTITY CASCADE
+    `);
   } finally {
     await client.end();
   }
@@ -156,6 +236,9 @@ async function cleanup() {
   if (volumeCreated) {
     await run("docker", ["volume", "rm", "-f", volumeName], { allowFailure: true });
   }
+  if (fixtureRoot) {
+    await fs.rm(fixtureRoot, { recursive: true, force: true });
+  }
   const [container, volume] = await Promise.all([
     run("docker", ["container", "inspect", containerName], { capture: true, allowFailure: true }),
     run("docker", ["volume", "inspect", volumeName], { capture: true, allowFailure: true })
@@ -167,7 +250,9 @@ async function cleanup() {
 }
 
 async function main() {
-  const expected = await readExpectedCounts();
+  const temporaryDemoPassword = crypto.randomBytes(32).toString("hex");
+  const fixture = bootstrapOnly ? null : await createTemporaryFixture(temporaryDemoPassword);
+  const expected = await readExpectedCounts(fixture?.dataDir);
   let primaryError;
   try {
     await run("docker", ["volume", "create", "--label", resourceLabel, volumeName]);
@@ -209,7 +294,6 @@ async function main() {
     const databaseUrl =
       `postgresql://${encodeURIComponent(databaseUser)}:${encodeURIComponent(databasePassword)}` +
       `@127.0.0.1:${match[1]}/${databaseName}`;
-    const temporaryDemoPassword = crypto.randomBytes(32).toString("hex");
     const testEnv = {
       ...process.env,
       NODE_ENV: "test",
@@ -219,12 +303,24 @@ async function main() {
       DATABASE_URL: databaseUrl,
       TEST_DATABASE_URL: databaseUrl,
       GESTORCONTA_TEMP_DATABASE_URL: databaseUrl,
-      EXPECTED_IMPORTED_CALENDAR_COUNT: String(expected.calendars)
+      EXPECTED_IMPORTED_CALENDAR_COUNT: String(expected.calendars),
+      ...(fixture ? {
+        GESTORCONTA_TEST_ROOT: fixtureRoot,
+        GESTORCONTA_DATA_DIR: fixture.dataDir,
+        GESTORCONTA_REQUIRE_TEMP_DATA_DIR: "1"
+      } : {})
     };
 
     await waitForDatabase(databaseUrl);
-    await run(process.execPath, ["scripts/db-migrate.js"], { env: testEnv });
+    await run(process.execPath, ["scripts/postgres-async-infrastructure-test.js"], { env: testEnv });
     await run(process.execPath, ["--test", "scripts/postgres-first-admin-bootstrap-test.js"], { env: testEnv });
+    if (bootstrapOnly) {
+      console.log("[ok] Prueba autonoma de bootstrap PostgreSQL completada.");
+      return;
+    }
+    await run(process.execPath, ["scripts/db-seed.js", "technical"], { env: testEnv });
+    await run(process.execPath, ["scripts/db-seed.js", "technical"], { env: testEnv });
+    await verifyTechnicalSeed(databaseUrl, expected.calendars);
     await run(process.execPath, ["scripts/db-migrate-json.js"], { env: testEnv });
     await verifyImportedCounts(databaseUrl, expected);
     await run(process.execPath, ["scripts/postgres-calendar-migration-test.js"], {
