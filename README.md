@@ -11,6 +11,11 @@ Los documentos funcionales y visuales base del proyecto son:
 - `docs/local-database-setup.md`
 - `docs/backup-restore-initial.md`
 - `docs/deployment-testing.md`
+- `docs/deployment-production.md`
+
+El piloto permanente para Ubuntu Server usa `compose.production.yml`, secretos
+montados desde archivos y un único puerto HTTPS. `compose.test.yml` permanece
+reservado para validaciones aisladas.
 
 ## Estado actual del proyecto
 

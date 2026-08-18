@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runtimeEnvironment } from "../lib/runtime-environment.js";
+import { readSecretFromEnvironment } from "../lib/secret-file.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,7 +48,7 @@ export function getDatabaseConfig() {
     port: normalizeInt(process.env.DB_PORT, 5432, { name: "DB_PORT", min: 1, max: 65535 }),
     database: String(process.env.DB_NAME || "gestorconta").trim(),
     user: String(process.env.DB_USER || "postgres").trim(),
-    password: String(process.env.DB_PASSWORD || "").trim(),
+    password: readSecretFromEnvironment(process.env, "DB_PASSWORD"),
     ssl: sslEnabled ? { rejectUnauthorized: normalizeBool(process.env.DB_SSL_REJECT_UNAUTHORIZED, false) } : false,
     poolMax: normalizeInt(process.env.DB_POOL_MAX, 10, { name: "DB_POOL_MAX", min: 1, max: 100 }),
     poolIdleMs: normalizeInt(process.env.DB_POOL_IDLE_MS, 10000, {

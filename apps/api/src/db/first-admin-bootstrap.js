@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { createPasswordCredential } from "../lib/auth-crypto.js";
+import { readSecretFromEnvironment } from "../lib/secret-file.js";
 import { withPgTransaction } from "./postgres-client.js";
 
 const BOOTSTRAP_LOCK_KEY = 347_202_607;
@@ -87,7 +88,7 @@ export function readFirstAdminBootstrapInput(env = process.env) {
   return {
     email,
     name: validateName(requiredSecret(env, "BOOTSTRAP_ADMIN_NAME")),
-    password: validatePassword(requiredSecret(env, "BOOTSTRAP_ADMIN_PASSWORD"), email)
+    password: validatePassword(readSecretFromEnvironment(env, "BOOTSTRAP_ADMIN_PASSWORD", { required: true }), email)
   };
 }
 

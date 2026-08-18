@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { readSecretFromEnvironment } from "./secret-file.js";
 
 const DEVELOPMENT_CSRF_SECRET = crypto.randomBytes(32).toString("hex");
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
@@ -49,7 +50,7 @@ export function getBrowserSessionConfiguration(
     throw new Error("AUTH_COOKIE_SAME_SITE=None requiere una cookie Secure en production.");
   }
 
-  const configuredSecret = String(env.AUTH_CSRF_SECRET ?? "");
+  const configuredSecret = readSecretFromEnvironment(env, "AUTH_CSRF_SECRET");
   if (production && configuredSecret.length < 32) {
     throw new Error("AUTH_CSRF_SECRET debe tener al menos 32 caracteres en production.");
   }

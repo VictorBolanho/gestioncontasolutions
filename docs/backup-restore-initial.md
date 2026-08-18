@@ -2,6 +2,8 @@
 
 Este documento conserva la contingencia del driver JSON. Para el piloto PostgreSQL,
 incluido el volumen persistente de PDF RUT, usa `docs/deployment-testing.md`.
+Para la instalación permanente con `compose.production.yml`, usa
+`docs/deployment-production.md` y conserva conjuntamente el dump y el volumen de uploads.
 
 ## Antes de migrar
 

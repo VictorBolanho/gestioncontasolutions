@@ -15,6 +15,12 @@ Hasta completar ese trabajo, desplegar varias organizaciones en la misma instanc
 
 ## Perímetro HTTP y despliegue
 
+El piloto permanente se define por separado en `compose.production.yml`. Expone
+únicamente Nginx mediante HTTPS y una red de borde; API, frontend y PostgreSQL
+comparten una red interna sin puertos publicados. Los secretos de PostgreSQL, CSRF, bootstrap y
+TLS se montan como archivos fuera de Git, y los datos viven en volúmenes
+persistentes independientes para PostgreSQL y uploads.
+
 La API aplica CORS mediante una allowlist exacta y conserva como fuente de red
 la dirección del socket. Sólo interpreta `Forwarded` o `X-Forwarded-For` si el
 salto directo figura en `TRUSTED_PROXY_ADDRESSES`; valida todos los saltos y

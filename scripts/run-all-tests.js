@@ -13,6 +13,7 @@ const expectedJsonFileCount = 15;
 const isolatedDemoSeedPassword = crypto.randomBytes(32).toString("hex");
 
 const commandsBeforeServices = [
+  ["node", ["--test", "scripts/secret-file-test.js"]],
   ["node", ["--test", "scripts/calendar-migration-test.js"]],
   ["node", ["--test", "scripts/auth-security-test.js"]],
   ["node", ["--test", "scripts/security-hardening-test.js"]],
